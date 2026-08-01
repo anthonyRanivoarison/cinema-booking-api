@@ -5,10 +5,7 @@ import io.poja.cinebook.service.ReservationService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/reservations")
@@ -24,5 +21,15 @@ public class ReservationController {
   @GetMapping("/{id}")
   public Reservation getById(@PathVariable UUID id) {
     return service.getById(id);
+  }
+
+  @PutMapping("/{id}")
+  public Reservation update(@RequestBody Reservation reservation, @PathVariable UUID id) {
+    return service.update(reservation, id);
+  }
+
+  @DeleteMapping("/{id}")
+  public void delete(@PathVariable UUID id) {
+    service.delete(id);
   }
 }

@@ -25,4 +25,20 @@ public class ReservationService {
   public List<Reservation> getAll() {
     return mapper.toModel(repository.findAll());
   }
+
+  public Reservation update(Reservation reservation, UUID id) {
+    if (repository.findById(id).isPresent()) {
+      throw new EntityNotFoundException(
+          String.format("Reservation to update with ID %s not found", reservation.id()));
+    }
+    return mapper.toModel(repository.save(mapper.toEntity(reservation)));
+  }
+
+  public void delete(UUID id) {
+    if (!repository.existsById(id)) {
+      throw new EntityNotFoundException(
+          String.format("Reservation to update with ID %s not found", id));
+    }
+    repository.deleteById(id);
+  }
 }

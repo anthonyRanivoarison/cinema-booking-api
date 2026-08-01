@@ -15,6 +15,9 @@ tags:
   - name: Rooms
   - name: Reservations
 
+security:
+  - bearerAuth: []
+
 paths:
   /movies:
     get:
@@ -64,12 +67,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Movie"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags:
+        - Movies
+      summary: Update a movie
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMovie"
+      responses:
+        "200":
+          description: Movie updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Movie"
+        "403":
+          $ref: "#/components/responses/ForbiddenManagerOnly"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /projections:
     get:
       tags:
         - Projections
       summary: Get all projections
+      description: Accessible to all authenticated roles (CLIENT, EMPLOYEE, MANAGER).
       responses:
         "200":
           description: List of projections
@@ -94,6 +129,36 @@ paths:
         "201":
           description: Projection created
 
+  /projections/{id}:
+    put:
+      tags:
+        - Projections
+      summary: Update a projection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjection"
+      responses:
+        "200":
+          description: Projection updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Projection"
+        "403":
+          $ref: "#/components/responses/ForbiddenManagerOnly"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /reservations:
     get:
       tags:
@@ -108,6 +173,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Reservation"
+        "403":
+          $ref: "#/components/responses/ForbiddenClientDenied"
 
     post:
       tags:
@@ -122,6 +189,60 @@ paths:
       responses:
         "201":
           description: Reservation created
+
+  /reservations/{id}:
+    get:
+      tags:
+        - Reservations
+      summary: Get reservation by id
+      description: A CLIENT can only access their own reservation. EMPLOYEE and MANAGER can access any reservation.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "403":
+          $ref: "#/components/responses/ForbiddenReservationNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags:
+        - Reservations
+      summary: Update a reservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReservation"
+      responses:
+        "200":
+          description: Reservation updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "403":
+          $ref: "#/components/responses/ForbiddenClientDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /rooms:
     get:
@@ -154,6 +275,38 @@ paths:
                   $ref: "#/components/schemas/User"
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    ForbiddenManagerOnly:
+      description: Forbidden — only MANAGER is allowed; CLIENT and EMPLOYEE are denied.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ForbiddenClientDenied:
+      description: Forbidden — CLIENT is denied; only EMPLOYEE and MANAGER are allowed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ForbiddenReservationNotOwner:
+      description: Forbidden — a CLIENT can only access their own reservation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
   schemas:
 
     Movie:
@@ -310,6 +463,17 @@ components:
         role:
           $ref: "#/components/schemas/UserRole"
 
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
     MovieGender:
       type: string
       enum:
@@ -318,7 +482,7 @@ components:
         - COMEDY
         - DRAMA
         - ACTION
-        - SCI_FI
+        - SCIFI
         - FANTASY
         - ANIMATION
 

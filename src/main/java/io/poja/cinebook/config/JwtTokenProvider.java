@@ -30,6 +30,7 @@ public class JwtTokenProvider {
   }
 
   public String generateToken(User user) {
+    JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
     JwtClaimsSet claims =
         JwtClaimsSet.builder()
             .subject(user.id().toString())
@@ -40,7 +41,7 @@ public class JwtTokenProvider {
             .build();
 
     return new NimbusJwtEncoder(new ImmutableSecret<>(secretKey()))
-        .encode(JwtEncoderParameters.from(claims))
+        .encode(JwtEncoderParameters.from(header, claims))
         .getTokenValue();
   }
 

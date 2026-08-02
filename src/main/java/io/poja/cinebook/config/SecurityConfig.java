@@ -45,6 +45,10 @@ public class SecurityConfig {
                     .authenticated()
                     .requestMatchers(HttpMethod.PUT, "/projections/")
                     .hasRole("MANAGER")
+                    .requestMatchers(HttpMethod.POST, "/users")
+                    .hasRole("MANAGER")
+                    .requestMatchers(HttpMethod.PATCH, "/users/{id}/role")
+                    .hasRole("MANAGER")
                     .anyRequest()
                     .authenticated())
         .oauth2ResourceServer(

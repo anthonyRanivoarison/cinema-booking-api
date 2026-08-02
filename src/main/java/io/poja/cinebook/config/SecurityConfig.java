@@ -39,7 +39,8 @@ public class SecurityConfig {
                     .authenticated()
                     .anyRequest()
                     .authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/projections/").hasRole("MANAGER"))
+                    .requestMatchers(HttpMethod.PUT, "/projections/")
+                    .hasRole("MANAGER"))
         .oauth2ResourceServer(
             oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
         .exceptionHandling(

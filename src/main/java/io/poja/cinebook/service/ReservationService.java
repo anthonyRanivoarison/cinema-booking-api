@@ -27,9 +27,9 @@ public class ReservationService {
   }
 
   public Reservation update(Reservation reservation, UUID id) {
-    if (repository.findById(id).isPresent()) {
+    if (repository.findById(id).isEmpty()) {
       throw new EntityNotFoundException(
-          String.format("Reservation to update with ID %s not found", reservation.id()));
+          String.format("Reservation to update with ID %s not found", id));
     }
     return mapper.toModel(repository.save(mapper.toEntity(reservation)));
   }
@@ -37,7 +37,7 @@ public class ReservationService {
   public void delete(UUID id) {
     if (!repository.existsById(id)) {
       throw new EntityNotFoundException(
-          String.format("Reservation to update with ID %s not found", id));
+          String.format("Reservation to delete with ID %s not found", id));
     }
     repository.deleteById(id);
   }

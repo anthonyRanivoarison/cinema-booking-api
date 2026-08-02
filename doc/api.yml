@@ -9,6 +9,7 @@ servers:
   - url: http://localhost:8080
 
 tags:
+  - name: Auth
   - name: Users
   - name: Movies
   - name: Projections
@@ -19,6 +20,58 @@ security:
   - bearerAuth: []
 
 paths:
+  /auth/signup:
+    post:
+      tags:
+        - Auth
+      summary: Register a new account (role CLIENT by default)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequest"
+      responses:
+        "201":
+          description: Account created, token returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security: []
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Log in and receive a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful, token returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security: []
+
   /movies:
     get:
       tags:
@@ -308,6 +361,54 @@ components:
             $ref: "#/components/schemas/Error"
 
   schemas:
+
+    SignUpRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - password
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        phone:
+          type: string
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/UserRole"
 
     Movie:
       type: object

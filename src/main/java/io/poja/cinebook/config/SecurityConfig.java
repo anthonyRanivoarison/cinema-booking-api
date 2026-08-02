@@ -2,19 +2,50 @@ package io.poja.cinebook.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain securityFilterChain(
+      HttpSecurity http, JwtAuthenticationConverter converter) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
-        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-        .formLogin(AbstractHttpConfigurer::disable)
-        .httpBasic(AbstractHttpConfigurer::disable);
+        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers(HttpMethod.GET, "/movies", "/movies/**")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.POST, "/movies")
+                    .hasRole("MANAGER")
+                    .requestMatchers(HttpMethod.PUT, "/movies**")
+                    .hasRole("MANAGER")
+                    .requestMatchers(HttpMethod.GET, "/reservations")
+                    .hasAnyRole("EMPLOYEE", "MANAGER")
+                    .requestMatchers(HttpMethod.POST, "/reservations")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.GET, "/reservations/")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.PUT, "/reservations/")
+                    .hasAnyRole("MANAGER", "EMPLOYEE")
+                    .requestMatchers(HttpMethod.GET, "/projections")
+                    .authenticated()
+                    .anyRequest()
+                    .authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/projections/").hasRole("MANAGER"))
+        .oauth2ResourceServer(
+            oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint((req, res, e) -> res.sendError(401, "Unauthorized"))
+                    .accessDeniedHandler((req, res, e) -> res.sendError(403, "Forbidden")));
     return http.build();
   }
 }

@@ -55,6 +55,10 @@ public class ProjectionService {
   }
 
   public void delete(UUID id) {
+    if (!repository.existsById(id)) {
+      throw new EntityNotFoundException(
+          String.format("Projection to delete with ID %s not found", id));
+    }
     repository.deleteById(id);
   }
 }

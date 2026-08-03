@@ -9,6 +9,7 @@ import io.poja.cinebook.mapper.UserMapper;
 import io.poja.cinebook.repository.UserRepository;
 import io.poja.cinebook.repository.model.JUser;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,10 @@ public class UserService {
   public User getById(UUID id) {
     return mapper.toModel(
         repository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found")));
+  }
+
+  public List<UserResponse> getAll() {
+    return repository.findAll().stream().map(this::toResponse).toList();
   }
 
   public UserResponse createUser(CreateUserRequest request) {

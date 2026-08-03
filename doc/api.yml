@@ -181,8 +181,33 @@ paths:
       responses:
         "201":
           description: Projection created
+        "403":
+          $ref: "#/components/responses/ForbiddenManagerOnly"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /projections/{id}:
+    get:
+      tags:
+        - Projections
+      summary: Get projection by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Projection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Projection"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
     put:
       tags:
         - Projections
@@ -207,6 +232,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Projection"
+        "403":
+          $ref: "#/components/responses/ForbiddenManagerOnly"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags:
+        - Projections
+      summary: Delete a projection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Projection deleted
         "403":
           $ref: "#/components/responses/ForbiddenManagerOnly"
         "404":

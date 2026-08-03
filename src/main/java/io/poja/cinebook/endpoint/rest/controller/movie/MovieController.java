@@ -3,6 +3,7 @@ package io.poja.cinebook.endpoint.rest.controller.movie;
 import io.poja.cinebook.dto.request.MovieRequest;
 import io.poja.cinebook.entity.Movie;
 import io.poja.cinebook.service.MovieService;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -27,12 +28,12 @@ public class MovieController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public Movie create(@RequestBody MovieRequest request) {
+  public Movie create(@RequestBody @Valid MovieRequest request) {
     return service.create(request);
   }
 
   @PutMapping("/{id}")
-  public Movie update(@RequestBody MovieRequest request, @PathVariable UUID id) {
+  public Movie update(@RequestBody @Valid MovieRequest request, @PathVariable UUID id) {
     return service.update(request, id);
   }
 

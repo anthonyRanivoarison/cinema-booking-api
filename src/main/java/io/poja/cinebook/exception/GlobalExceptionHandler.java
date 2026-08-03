@@ -9,10 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -57,6 +59,27 @@ public class GlobalExceptionHandler {
 
     Map<String, Object> body = new HashMap<>();
     body.put("message", errors.isEmpty() ? "Validation failed" : errors);
+    body.put("status", HttpStatus.BAD_REQUEST.value());
+    body.put("timestamp", Instant.now());
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException ex) {
+    Map<String, Object> body = new HashMap<>();
+    body.put("message", "Malformed request body or invalid value");
+    body.put("status", HttpStatus.BAD_REQUEST.value());
+    body.put("timestamp", Instant.now());
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<Map<String, Object>> handleTypeMismatch(
+      MethodArgumentTypeMismatchException ex) {
+    Map<String, Object> body = new HashMap<>();
+    body.put("message", "Invalid parameter value for '" + ex.getName() + "'");
     body.put("status", HttpStatus.BAD_REQUEST.value());
     body.put("timestamp", Instant.now());
 

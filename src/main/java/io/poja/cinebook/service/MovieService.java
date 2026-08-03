@@ -2,12 +2,14 @@ package io.poja.cinebook.service;
 
 import io.poja.cinebook.dto.request.MovieRequest;
 import io.poja.cinebook.entity.Movie;
+import io.poja.cinebook.exception.ApiException;
 import io.poja.cinebook.mapper.MovieMapper;
 import io.poja.cinebook.repository.MovieRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -26,6 +28,7 @@ public class MovieService {
   }
 
   public Movie create(MovieRequest request) {
+    assertValid(request);
     Movie movie =
         Movie.builder()
             .id(UUID.randomUUID())
@@ -38,6 +41,7 @@ public class MovieService {
   }
 
   public Movie update(MovieRequest request, UUID id) {
+    assertValid(request);
     if (repository.findById(id).isEmpty()) {
       throw new EntityNotFoundException(String.format("Movie with ID %s not found", id));
     }
@@ -50,6 +54,12 @@ public class MovieService {
             .duration(request.duration())
             .build();
     return mapper.toModel(repository.save(mapper.toEntity(movie)));
+  }
+
+  private void assertValid(MovieRequest request) {
+    if (request.duration().isZero() || request.duration().isNegative()) {
+      throw new ApiException("duration must be positive", HttpStatus.BAD_REQUEST);
+    }
   }
 
   public void delete(UUID id) {

@@ -86,6 +86,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Movie"
+        "403":
+          $ref: "#/components/responses/ForbiddenManagerOnly"
 
     post:
       tags:
@@ -100,6 +102,10 @@ paths:
       responses:
         "201":
           description: Movie created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/ForbiddenManagerOnly"
 
   /movies/{id}:
     get:
@@ -120,6 +126,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Movie"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/ForbiddenManagerOnly"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -147,6 +157,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Movie"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/ForbiddenManagerOnly"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags:
+        - Movies
+      summary: Delete a movie
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Movie deleted
         "403":
           $ref: "#/components/responses/ForbiddenManagerOnly"
         "404":
@@ -456,6 +487,12 @@ components:
             $ref: "#/components/schemas/Error"
     NotFound:
       description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequest:
+      description: Bad request — missing/invalid field, malformed body, or invalid parameter.
       content:
         application/json:
           schema:

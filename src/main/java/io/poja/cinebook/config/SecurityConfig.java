@@ -1,5 +1,11 @@
 package io.poja.cinebook.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,7 +20,9 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+  private final ObjectMapper objectMapper;
 
   @Bean
   public SecurityFilterChain securityFilterChain(
@@ -23,15 +31,19 @@ public class SecurityConfig {
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.POST, "/auth/**")
+                auth.requestMatchers("/error")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/auth/**")
                     .permitAll()
                     .requestMatchers("/ping")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/movies", "/movies/**")
-                    .authenticated()
+                    .hasRole("MANAGER")
                     .requestMatchers(HttpMethod.POST, "/movies")
                     .hasRole("MANAGER")
-                    .requestMatchers(HttpMethod.PUT, "/movies**")
+                    .requestMatchers(HttpMethod.PUT, "/movies/*")
+                    .hasRole("MANAGER")
+                    .requestMatchers(HttpMethod.DELETE, "/movies/*")
                     .hasRole("MANAGER")
                     .requestMatchers(HttpMethod.GET, "/reservations")
                     .hasAnyRole("EMPLOYEE", "MANAGER")
@@ -61,9 +73,22 @@ public class SecurityConfig {
             oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
         .exceptionHandling(
             ex ->
-                ex.authenticationEntryPoint((req, res, e) -> res.sendError(401, "Unauthorized"))
-                    .accessDeniedHandler((req, res, e) -> res.sendError(403, "Forbidden")));
+                ex.authenticationEntryPoint(
+                        (req, res, e) ->
+                            writeJsonError(res, 401, "Unauthorized: authentication required"))
+                    .accessDeniedHandler(
+                        (req, res, e) -> writeJsonError(res, 403, "Forbidden: insufficient role")));
     return http.build();
+  }
+
+  private void writeJsonError(HttpServletResponse res, int status, String message)
+      throws IOException {
+    res.setStatus(status);
+    res.setContentType("application/json");
+    res.getWriter()
+        .write(
+            objectMapper.writeValueAsString(
+                Map.of("message", message, "status", status, "timestamp", Instant.now())));
   }
 
   @Bean

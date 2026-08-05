@@ -11,7 +11,6 @@ import io.poja.cinebook.repository.MovieRepository;
 import io.poja.cinebook.repository.ProjectionRepository;
 import io.poja.cinebook.repository.RoomRepository;
 import io.poja.cinebook.repository.model.JMovie;
-import io.poja.cinebook.repository.model.JProjection;
 import io.poja.cinebook.repository.model.JRoom;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
@@ -99,7 +98,8 @@ class ProjectionServiceIT extends FacadeIT {
 
   @Test
   void update_throwsNotFound_whenMissing() {
-    assertThatThrownBy(() -> service.update(request(UUID.randomUUID(), UUID.randomUUID()), UUID.randomUUID()))
+    assertThatThrownBy(
+            () -> service.update(request(UUID.randomUUID(), UUID.randomUUID()), UUID.randomUUID()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessageContaining("not found");
   }

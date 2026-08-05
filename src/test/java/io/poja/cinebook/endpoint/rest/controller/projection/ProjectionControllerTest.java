@@ -43,7 +43,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(ProjectionController.class)
-@Import({SecurityConfig.class, JwtConfig.class, JwtTokenProvider.class, GlobalExceptionHandler.class})
+@Import({
+  SecurityConfig.class,
+  JwtConfig.class,
+  JwtTokenProvider.class,
+  GlobalExceptionHandler.class
+})
 class ProjectionControllerTest {
 
   private static final UUID ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -113,7 +118,8 @@ class ProjectionControllerTest {
     verify(service).create(captor.capture());
     ProjectionRequest request = captor.getValue();
     org.assertj.core.api.Assertions.assertThat(request.datetime()).isEqualTo(DATETIME);
-    org.assertj.core.api.Assertions.assertThat(request.seatPrice()).isEqualByComparingTo(SEAT_PRICE);
+    org.assertj.core.api.Assertions.assertThat(request.seatPrice())
+        .isEqualByComparingTo(SEAT_PRICE);
     org.assertj.core.api.Assertions.assertThat(request.movieId()).isEqualTo(MOVIE_ID);
     org.assertj.core.api.Assertions.assertThat(request.roomId()).isEqualTo(ROOM_ID);
   }
@@ -153,8 +159,7 @@ class ProjectionControllerTest {
 
   @Test
   void getById_returnsNotFound_whenMissing() throws Exception {
-    when(service.getById(ID))
-        .thenThrow(new EntityNotFoundException("Projection not found"));
+    when(service.getById(ID)).thenThrow(new EntityNotFoundException("Projection not found"));
 
     mockMvc
         .perform(get("/projections/{id}", ID).header("Authorization", bearer(MANAGER)))
@@ -247,12 +252,7 @@ class ProjectionControllerTest {
   }
 
   private String token(UserRole role) {
-    User user =
-        User.builder()
-            .id(UUID.randomUUID())
-            .email("user@example.com")
-            .role(role)
-            .build();
+    User user = User.builder().id(UUID.randomUUID()).email("user@example.com").role(role).build();
     return tokenProvider.generateToken(user);
   }
 

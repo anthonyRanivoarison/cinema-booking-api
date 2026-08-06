@@ -131,8 +131,7 @@ class UserServiceTest {
     when(repository.findById(ID)).thenReturn(Optional.of(entity));
     when(repository.save(entity)).thenReturn(entity);
 
-    UserResponse response =
-        service.updateRole(ID, new UpdateUserRoleRequest(UserRole.MANAGER));
+    UserResponse response = service.updateRole(ID, new UpdateUserRoleRequest(UserRole.MANAGER));
 
     verify(repository).save(entity);
     assertThat(entity.getRole()).isEqualTo(UserRole.MANAGER);

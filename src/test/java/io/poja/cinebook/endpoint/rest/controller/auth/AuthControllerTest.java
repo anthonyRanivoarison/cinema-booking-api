@@ -17,7 +17,6 @@ import io.poja.cinebook.dto.response.AuthResponse;
 import io.poja.cinebook.entity.enums.UserRole;
 import io.poja.cinebook.exception.GlobalExceptionHandler;
 import io.poja.cinebook.service.AuthService;
-import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:16
-    profiles: ["local-db"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-cinebook}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cinebook}
@@ -18,11 +17,13 @@ services:
     build: .
     ports:
       - "${API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/${POSTGRES_DB:-cinebook}}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-${POSTGRES_USER:-cinebook}}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-${POSTGRES_PASSWORD:-cinebook}}
-      SPRING_FLYWAY_ENABLED: false
       JWT_SECRET: ${JWT_SECRET:-gkW7GkG2R5jMBXeF30VCwuyug6tjCw2A0dUeTV3qCFE=}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
 

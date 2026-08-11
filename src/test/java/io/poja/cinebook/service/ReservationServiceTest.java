@@ -10,8 +10,10 @@ import static org.mockito.Mockito.when;
 import io.poja.cinebook.dto.request.CreateReservationRequest;
 import io.poja.cinebook.entity.Reservation;
 import io.poja.cinebook.entity.enums.UserRole;
+import io.poja.cinebook.exception.ApiException;
 import io.poja.cinebook.exception.ForbiddenException;
 import io.poja.cinebook.mapper.ReservationMapper;
+import io.poja.cinebook.repository.ProjectionRepository;
 import io.poja.cinebook.repository.ReservationRepository;
 import io.poja.cinebook.repository.model.JReservation;
 import jakarta.persistence.EntityNotFoundException;
@@ -37,6 +39,7 @@ class ReservationServiceTest {
   private static final Instant CREATED_AT = Instant.parse("2026-08-05T10:00:00Z");
 
   @Mock private ReservationRepository repository;
+  @Mock private ProjectionRepository projectionRepository;
   @Mock private ReservationMapper mapper;
   @InjectMocks private ReservationService service;
 
@@ -99,6 +102,8 @@ class ReservationServiceTest {
   void create_persistsNewReservationWithGeneratedId() {
     var request = request();
     var entity = entity();
+    when(projectionRepository.existsById(PROJECTION_ID)).thenReturn(true);
+    when(repository.findTakenSeatIdsByProjectionId(PROJECTION_ID)).thenReturn(List.of());
     when(mapper.toEntity(any(Reservation.class))).thenReturn(entity);
     when(repository.save(entity)).thenReturn(entity);
     when(mapper.toModel(entity)).thenReturn(model());
@@ -116,6 +121,29 @@ class ReservationServiceTest {
     verify(repository).save(entity);
     verify(mapper).toModel(entity);
     assertThat(result).isEqualTo(model());
+  }
+
+  @Test
+  void create_throwsNotFound_whenProjectionMissing() {
+    when(projectionRepository.existsById(PROJECTION_ID)).thenReturn(false);
+
+    assertThatThrownBy(() -> service.create(request()))
+        .isInstanceOf(EntityNotFoundException.class)
+        .hasMessage("Projection not found");
+    verify(repository, never()).save(any());
+  }
+
+  @Test
+  void create_throwsConflict_whenSeatAlreadyTaken() {
+    when(projectionRepository.existsById(PROJECTION_ID)).thenReturn(true);
+    when(repository.findTakenSeatIdsByProjectionId(PROJECTION_ID)).thenReturn(List.of(SEAT_ID));
+
+    assertThatThrownBy(() -> service.create(request()))
+        .isInstanceOf(ApiException.class)
+        .hasMessageContaining("Seat(s) already reserved")
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
+    verify(repository, never()).save(any());
   }
 
   @Test

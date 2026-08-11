@@ -3,14 +3,17 @@ package io.poja.cinebook.service;
 import io.poja.cinebook.dto.request.CreateReservationRequest;
 import io.poja.cinebook.entity.Reservation;
 import io.poja.cinebook.entity.enums.UserRole;
+import io.poja.cinebook.exception.ApiException;
 import io.poja.cinebook.exception.ForbiddenException;
 import io.poja.cinebook.mapper.ReservationMapper;
+import io.poja.cinebook.repository.ProjectionRepository;
 import io.poja.cinebook.repository.ReservationRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class ReservationService {
   private final ReservationMapper mapper;
   private final ReservationRepository repository;
+  private final ProjectionRepository projectionRepository;
 
   public Reservation getById(UUID id, String currentUserId, String role) {
     Reservation reservation =
@@ -37,6 +41,15 @@ public class ReservationService {
   }
 
   public Reservation create(CreateReservationRequest request) {
+    if (!projectionRepository.existsById(request.projectionId())) {
+      throw new EntityNotFoundException("Projection not found");
+    }
+    List<UUID> takenSeatIds = repository.findTakenSeatIdsByProjectionId(request.projectionId());
+    List<UUID> conflicts = request.seatIds().stream().filter(takenSeatIds::contains).toList();
+    if (!conflicts.isEmpty()) {
+      throw new ApiException(
+          String.format("Seat(s) already reserved: %s", conflicts), HttpStatus.CONFLICT);
+    }
     Reservation reservation =
         Reservation.builder()
             .id(UUID.randomUUID())

@@ -1,6 +1,7 @@
 package io.poja.cinebook.endpoint.rest.controller.projection;
 
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.service.ProjectionService;
 import java.util.List;
@@ -23,6 +24,11 @@ public class ProjectionController {
   @GetMapping("/{id}")
   public Projection getById(@PathVariable UUID id) {
     return service.getById(id);
+  }
+
+  @GetMapping("/{id}/seats")
+  public List<SeatAvailability> getSeats(@PathVariable UUID id) {
+    return service.getSeats(id);
   }
 
   @PostMapping

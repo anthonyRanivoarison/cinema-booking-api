@@ -4,18 +4,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.poja.cinebook.conf.FacadeIT;
+import io.poja.cinebook.dto.request.CreateReservationRequest;
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.entity.enums.MovieGender;
+import io.poja.cinebook.entity.enums.UserRole;
 import io.poja.cinebook.repository.MovieRepository;
 import io.poja.cinebook.repository.ProjectionRepository;
 import io.poja.cinebook.repository.RoomRepository;
+import io.poja.cinebook.repository.SeatRepository;
+import io.poja.cinebook.repository.UserRepository;
 import io.poja.cinebook.repository.model.JMovie;
 import io.poja.cinebook.repository.model.JRoom;
+import io.poja.cinebook.repository.model.JSeat;
+import io.poja.cinebook.repository.model.JUser;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +39,9 @@ class ProjectionServiceIT extends FacadeIT {
   @Autowired private ProjectionRepository projectionRepository;
   @Autowired private MovieRepository movieRepository;
   @Autowired private RoomRepository roomRepository;
+  @Autowired private SeatRepository seatRepository;
+  @Autowired private UserRepository userRepository;
+  @Autowired private ReservationService reservationService;
 
   @Test
   void getAll_returnsEmptyListOnEmptyDatabase() {
@@ -123,6 +134,64 @@ class ProjectionServiceIT extends FacadeIT {
     assertThatThrownBy(() -> service.delete(UUID.randomUUID()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessageContaining("not found");
+  }
+
+  @Test
+  void getSeats_returnsAllSeatsAvailableOnFreshProjection() {
+    JMovie movie = saveMovie("Dune");
+    JRoom room = saveRoom("Salle 5");
+    JSeat seatA = seatRepository.save(JSeat.builder().number("A1").room(room).build());
+    JSeat seatB = seatRepository.save(JSeat.builder().number("A2").room(room).build());
+    Projection projection = service.create(request(movie.getId(), room.getId()));
+
+    List<SeatAvailability> result = service.getSeats(projection.id());
+
+    assertThat(result).hasSize(2);
+    assertThat(result).extracting(SeatAvailability::number).containsExactlyInAnyOrder("A1", "A2");
+    assertThat(result).allMatch(SeatAvailability::available);
+  }
+
+  @Test
+  void getSeats_marksSeatUnavailableAfterReservation() {
+    JMovie movie = saveMovie("Dune");
+    JRoom room = saveRoom("Salle 6");
+    JSeat seatA = seatRepository.save(JSeat.builder().number("A1").room(room).build());
+    JSeat seatB = seatRepository.save(JSeat.builder().number("A2").room(room).build());
+    Projection projection = service.create(request(movie.getId(), room.getId()));
+
+    JUser user =
+        userRepository.save(
+            JUser.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("seats@example.com")
+                .password("hashed-password")
+                .role(UserRole.CLIENT)
+                .build());
+    reservationService.create(
+        CreateReservationRequest.builder()
+            .userId(user.getId())
+            .projectionId(projection.id())
+            .seatIds(List.of(seatA.getId()))
+            .build());
+
+    List<SeatAvailability> result = service.getSeats(projection.id());
+
+    assertThat(result)
+        .filteredOn(seat -> seat.number().equals("A1"))
+        .singleElement()
+        .satisfies(seat -> assertThat(seat.available()).isFalse());
+    assertThat(result)
+        .filteredOn(seat -> seat.number().equals("A2"))
+        .singleElement()
+        .satisfies(seat -> assertThat(seat.available()).isTrue());
+  }
+
+  @Test
+  void getSeats_throwsNotFound_whenProjectionMissing() {
+    assertThatThrownBy(() -> service.getSeats(UUID.randomUUID()))
+        .isInstanceOf(EntityNotFoundException.class)
+        .hasMessage("Projection not found");
   }
 
   private ProjectionRequest request(UUID movieId, UUID roomId) {

@@ -14,6 +14,9 @@ public class MovieMapper {
         .gender(entity.getGender())
         .description(entity.getDescription())
         .duration(entity.getDuration())
+        .posterUrl(entity.getPosterUrl())
+        .trailerYoutubeKey(entity.getTrailerYoutubeKey())
+        .tmdbId(entity.getTmdbId())
         .build();
   }
 
@@ -28,6 +31,9 @@ public class MovieMapper {
         .gender(model.gender())
         .description(model.description())
         .duration(model.duration())
+        .posterUrl(model.posterUrl())
+        .trailerYoutubeKey(model.trailerYoutubeKey())
+        .tmdbId(model.tmdbId())
         .build();
   }
 

@@ -1,9 +1,12 @@
 package io.poja.cinebook.repository;
 
 import io.poja.cinebook.repository.model.JMovie;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface MovieRepository extends JpaRepository<JMovie, UUID> {}
+public interface MovieRepository extends JpaRepository<JMovie, UUID> {
+  Optional<JMovie> findByTmdbId(Long tmdbId);
+}

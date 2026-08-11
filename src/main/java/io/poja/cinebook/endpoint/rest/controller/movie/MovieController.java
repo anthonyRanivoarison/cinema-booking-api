@@ -1,5 +1,6 @@
 package io.poja.cinebook.endpoint.rest.controller.movie;
 
+import io.poja.cinebook.client.TmdbSearchResult;
 import io.poja.cinebook.dto.request.MovieRequest;
 import io.poja.cinebook.entity.Movie;
 import io.poja.cinebook.service.MovieService;
@@ -24,6 +25,17 @@ public class MovieController {
   @GetMapping("/{id}")
   public Movie getById(@PathVariable UUID id) {
     return service.getById(id);
+  }
+
+  @GetMapping("/search")
+  public List<TmdbSearchResult> search(@RequestParam String query) {
+    return service.searchTmdb(query);
+  }
+
+  @PostMapping("/import/{tmdbId}")
+  @ResponseStatus(HttpStatus.CREATED)
+  public Movie importFromTmdb(@PathVariable int tmdbId) {
+    return service.importFromTmdb(tmdbId);
   }
 
   @PostMapping

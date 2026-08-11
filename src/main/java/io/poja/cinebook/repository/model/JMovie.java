@@ -39,6 +39,14 @@ public class JMovie {
 
   private Duration duration;
 
+  @Column(length = 512)
+  private String posterUrl;
+
+  @Column(length = 128)
+  private String trailerYoutubeKey;
+
+  private Long tmdbId;
+
   @OneToMany(mappedBy = "movie")
   private List<JProjection> projections;
 }

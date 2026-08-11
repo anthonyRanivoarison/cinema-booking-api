@@ -7,4 +7,11 @@ import lombok.Builder;
 
 @Builder
 public record Movie(
-    UUID id, String title, MovieGender gender, String description, Duration duration) {}
+    UUID id,
+    String title,
+    MovieGender gender,
+    String description,
+    Duration duration,
+    String posterUrl,
+    String trailerYoutubeKey,
+    Long tmdbId) {}

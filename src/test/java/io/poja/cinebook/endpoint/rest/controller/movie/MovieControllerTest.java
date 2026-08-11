@@ -4,6 +4,7 @@ import static io.poja.cinebook.entity.enums.UserRole.CLIENT;
 import static io.poja.cinebook.entity.enums.UserRole.EMPLOYEE;
 import static io.poja.cinebook.entity.enums.UserRole.MANAGER;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.poja.cinebook.client.TmdbSearchResult;
 import io.poja.cinebook.config.JwtConfig;
 import io.poja.cinebook.config.JwtTokenProvider;
 import io.poja.cinebook.config.SecurityConfig;
@@ -190,19 +192,26 @@ class MovieControllerTest {
   }
 
   @Test
-  void getAll_returnsForbidden_forClientRole() throws Exception {
+  void getAll_returnsOk_forClientRole() throws Exception {
+    when(service.getAll()).thenReturn(List.of(model()));
+
     mockMvc
         .perform(get("/movies").header("Authorization", bearer(CLIENT)))
-        .andExpect(status().isForbidden());
-    verify(service, never()).getAll();
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].title").value(TITLE));
+
+    verify(service).getAll();
   }
 
   @Test
-  void getAll_returnsForbidden_forEmployeeRole() throws Exception {
+  void getAll_returnsOk_forEmployeeRole() throws Exception {
+    when(service.getAll()).thenReturn(List.of(model()));
+
     mockMvc
         .perform(get("/movies").header("Authorization", bearer(EMPLOYEE)))
-        .andExpect(status().isForbidden());
-    verify(service, never()).getAll();
+        .andExpect(status().isOk());
+
+    verify(service).getAll();
   }
 
   @Test
@@ -228,6 +237,48 @@ class MovieControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody()))
         .andExpect(status().isCreated());
+  }
+
+  @Test
+  void importFromTmdb_returnsCreated_forManagerRole() throws Exception {
+    when(service.importFromTmdb(anyInt())).thenReturn(model());
+
+    mockMvc
+        .perform(post("/movies/import/{tmdbId}", 693134).header("Authorization", bearer(MANAGER)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.title").value(TITLE));
+
+    verify(service).importFromTmdb(693134);
+  }
+
+  @Test
+  void importFromTmdb_returnsForbidden_forClientRole() throws Exception {
+    mockMvc
+        .perform(post("/movies/import/{tmdbId}", 693134).header("Authorization", bearer(CLIENT)))
+        .andExpect(status().isForbidden());
+    verify(service, never()).importFromTmdb(anyInt());
+  }
+
+  @Test
+  void search_returnsResults_forManagerRole() throws Exception {
+    when(service.searchTmdb("dune")).thenReturn(List.of(tmdbResult()));
+
+    mockMvc
+        .perform(
+            get("/movies/search").param("query", "dune").header("Authorization", bearer(MANAGER)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].title").value("Dune"));
+
+    verify(service).searchTmdb("dune");
+  }
+
+  @Test
+  void search_returnsForbidden_forClientRole() throws Exception {
+    mockMvc
+        .perform(
+            get("/movies/search").param("query", "dune").header("Authorization", bearer(CLIENT)))
+        .andExpect(status().isForbidden());
+    verify(service, never()).searchTmdb(any());
   }
 
   private String requestBody() throws Exception {
@@ -260,5 +311,9 @@ class MovieControllerTest {
         .description(DESCRIPTION)
         .duration(DURATION)
         .build();
+  }
+
+  private TmdbSearchResult tmdbResult() {
+    return new TmdbSearchResult(693134, "Dune", "A young Paul Atreides.", "2021-10-22", null);
   }
 }

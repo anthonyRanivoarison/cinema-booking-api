@@ -17,6 +17,9 @@ class MovieMapperTest {
   private static final MovieGender GENDER = MovieGender.ACTION;
   private static final String DESCRIPTION = "A young Paul Atreides continues his journey.";
   private static final Duration DURATION = Duration.ofMinutes(148);
+  private static final String POSTER_URL = "https://image.tmdb.org/t/p/w500/poster.jpg";
+  private static final String TRAILER_KEY = "abc123";
+  private static final long TMDB_ID = 693134L;
 
   private final MovieMapper mapper = new MovieMapper();
 
@@ -29,6 +32,9 @@ class MovieMapperTest {
     assertThat(result.gender()).isEqualTo(GENDER);
     assertThat(result.description()).isEqualTo(DESCRIPTION);
     assertThat(result.duration()).isEqualTo(DURATION);
+    assertThat(result.posterUrl()).isEqualTo(POSTER_URL);
+    assertThat(result.trailerYoutubeKey()).isEqualTo(TRAILER_KEY);
+    assertThat(result.tmdbId()).isEqualTo(TMDB_ID);
   }
 
   @Test
@@ -54,6 +60,9 @@ class MovieMapperTest {
     assertThat(result.getGender()).isEqualTo(GENDER);
     assertThat(result.getDescription()).isEqualTo(DESCRIPTION);
     assertThat(result.getDuration()).isEqualTo(DURATION);
+    assertThat(result.getPosterUrl()).isEqualTo(POSTER_URL);
+    assertThat(result.getTrailerYoutubeKey()).isEqualTo(TRAILER_KEY);
+    assertThat(result.getTmdbId()).isEqualTo(TMDB_ID);
   }
 
   @Test
@@ -77,6 +86,9 @@ class MovieMapperTest {
         .gender(GENDER)
         .description(DESCRIPTION)
         .duration(DURATION)
+        .posterUrl(POSTER_URL)
+        .trailerYoutubeKey(TRAILER_KEY)
+        .tmdbId(TMDB_ID)
         .build();
   }
 
@@ -87,6 +99,9 @@ class MovieMapperTest {
         .gender(GENDER)
         .description(DESCRIPTION)
         .duration(DURATION)
+        .posterUrl(POSTER_URL)
+        .trailerYoutubeKey(TRAILER_KEY)
+        .tmdbId(TMDB_ID)
         .build();
   }
 }

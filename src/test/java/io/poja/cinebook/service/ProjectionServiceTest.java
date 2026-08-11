@@ -9,10 +9,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.mapper.ProjectionMapper;
 import io.poja.cinebook.repository.ProjectionRepository;
+import io.poja.cinebook.repository.ReservationRepository;
+import io.poja.cinebook.repository.SeatRepository;
 import io.poja.cinebook.repository.model.JProjection;
+import io.poja.cinebook.repository.model.JRoom;
+import io.poja.cinebook.repository.model.JSeat;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -36,6 +41,8 @@ class ProjectionServiceTest {
   private static final BigDecimal SEAT_PRICE = new BigDecimal("12.50");
 
   @Mock private ProjectionRepository repository;
+  @Mock private SeatRepository seatRepository;
+  @Mock private ReservationRepository reservationRepository;
   @Mock private ProjectionMapper mapper;
   @InjectMocks private ProjectionService service;
 
@@ -155,6 +162,38 @@ class ProjectionServiceTest {
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage(String.format("Projection to delete with ID %s not found", ID));
     verify(repository, never()).deleteById(any(UUID.class));
+  }
+
+  @Test
+  void getSeats_returnsSeatsWithAvailability() {
+    JProjection projection =
+        JProjection.builder().id(ID).room(JRoom.builder().id(ROOM_ID).build()).build();
+    UUID seatAId = UUID.fromString("44444444-4444-4444-4444-444444444444");
+    UUID seatBId = UUID.fromString("55555555-5555-5555-5555-555555555555");
+    JSeat seatA = JSeat.builder().id(seatAId).number("A1").build();
+    JSeat seatB = JSeat.builder().id(seatBId).number("A2").build();
+    when(repository.findById(ID)).thenReturn(Optional.of(projection));
+    when(seatRepository.findByRoom_Id(ROOM_ID)).thenReturn(List.of(seatA, seatB));
+    when(reservationRepository.findTakenSeatIdsByProjectionId(ID)).thenReturn(List.of(seatBId));
+
+    List<SeatAvailability> result = service.getSeats(ID);
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).seatId()).isEqualTo(seatAId);
+    assertThat(result.get(0).number()).isEqualTo("A1");
+    assertThat(result.get(0).available()).isTrue();
+    assertThat(result.get(1).seatId()).isEqualTo(seatBId);
+    assertThat(result.get(1).number()).isEqualTo("A2");
+    assertThat(result.get(1).available()).isFalse();
+  }
+
+  @Test
+  void getSeats_throwsNotFound_whenProjectionMissing() {
+    when(repository.findById(ID)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.getSeats(ID))
+        .isInstanceOf(EntityNotFoundException.class)
+        .hasMessage("Projection not found");
   }
 
   private ProjectionRequest request() {

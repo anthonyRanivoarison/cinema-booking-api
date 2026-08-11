@@ -11,4 +11,7 @@ public record MovieRequest(
     @NotBlank(message = "title is required") String title,
     @NotNull(message = "gender is required") MovieGender gender,
     String description,
-    @NotNull(message = "duration is required") Duration duration) {}
+    @NotNull(message = "duration is required") Duration duration,
+    String posterUrl,
+    String trailerYoutubeKey,
+    Long tmdbId) {}

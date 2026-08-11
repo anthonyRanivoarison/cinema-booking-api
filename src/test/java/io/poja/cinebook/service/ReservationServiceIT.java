@@ -8,6 +8,7 @@ import io.poja.cinebook.dto.request.CreateReservationRequest;
 import io.poja.cinebook.entity.Reservation;
 import io.poja.cinebook.entity.enums.MovieGender;
 import io.poja.cinebook.entity.enums.UserRole;
+import io.poja.cinebook.exception.ApiException;
 import io.poja.cinebook.exception.ForbiddenException;
 import io.poja.cinebook.repository.MovieRepository;
 import io.poja.cinebook.repository.ProjectionRepository;
@@ -166,6 +167,29 @@ class ReservationServiceIT extends FacadeIT {
     assertThatThrownBy(() -> service.delete(UUID.randomUUID()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessageContaining("not found");
+  }
+
+  @Test
+  void create_throwsConflict_whenSeatAlreadyTaken() {
+    JUser user = saveUser("conflict@example.com");
+    JProjection projection = saveProjection();
+    JSeat seat = saveSeat("F1");
+    service.create(request(user.getId(), projection.getId(), seat));
+
+    assertThatThrownBy(() -> service.create(request(user.getId(), projection.getId(), seat)))
+        .isInstanceOf(ApiException.class)
+        .hasMessageContaining("already reserved");
+    assertThat(reservationRepository.count()).isEqualTo(1);
+  }
+
+  @Test
+  void create_throwsNotFound_whenProjectionMissing() {
+    JUser user = saveUser("missing@example.com");
+    JSeat seat = saveSeat("F2");
+
+    assertThatThrownBy(() -> service.create(request(user.getId(), UUID.randomUUID(), seat)))
+        .isInstanceOf(EntityNotFoundException.class)
+        .hasMessage("Projection not found");
   }
 
   private CreateReservationRequest request(UUID userId, UUID projectionId, JSeat... seats) {

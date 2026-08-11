@@ -1,9 +1,13 @@
 package io.poja.cinebook.service;
 
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.mapper.ProjectionMapper;
 import io.poja.cinebook.repository.ProjectionRepository;
+import io.poja.cinebook.repository.ReservationRepository;
+import io.poja.cinebook.repository.SeatRepository;
+import io.poja.cinebook.repository.model.JProjection;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.UUID;
@@ -15,6 +19,8 @@ import org.springframework.stereotype.Service;
 public class ProjectionService {
   private final ProjectionMapper mapper;
   private final ProjectionRepository repository;
+  private final SeatRepository seatRepository;
+  private final ReservationRepository reservationRepository;
 
   public Projection getById(UUID id) {
     return mapper.toModel(
@@ -25,6 +31,20 @@ public class ProjectionService {
 
   public List<Projection> getAll() {
     return mapper.toModel(repository.findAll());
+  }
+
+  public List<SeatAvailability> getSeats(UUID projectionId) {
+    JProjection projection =
+        repository
+            .findById(projectionId)
+            .orElseThrow(() -> new EntityNotFoundException("Projection not found"));
+    List<UUID> takenSeatIds = reservationRepository.findTakenSeatIdsByProjectionId(projectionId);
+    return seatRepository.findByRoom_Id(projection.getRoom().getId()).stream()
+        .map(
+            seat ->
+                new SeatAvailability(
+                    seat.getId(), seat.getNumber(), !takenSeatIds.contains(seat.getId())))
+        .toList();
   }
 
   public Projection create(ProjectionRequest request) {

@@ -20,6 +20,7 @@ import io.poja.cinebook.config.JwtConfig;
 import io.poja.cinebook.config.JwtTokenProvider;
 import io.poja.cinebook.config.SecurityConfig;
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.entity.User;
 import io.poja.cinebook.entity.enums.UserRole;
@@ -184,6 +185,30 @@ class ProjectionControllerTest {
     mockMvc
         .perform(get("/projections/{id}", "abc").header("Authorization", bearer(MANAGER)))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void getSeats_returnsAvailability() throws Exception {
+    UUID seatId = UUID.fromString("44444444-4444-4444-4444-444444444444");
+    when(service.getSeats(ID))
+        .thenReturn(
+            List.of(
+                SeatAvailability.builder().seatId(seatId).number("A1").available(true).build()));
+
+    mockMvc
+        .perform(get("/projections/{id}/seats", ID).header("Authorization", bearer(CLIENT)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].seatId").value(seatId.toString()))
+        .andExpect(jsonPath("$[0].number").value("A1"))
+        .andExpect(jsonPath("$[0].available").value(true));
+
+    verify(service).getSeats(ID);
+  }
+
+  @Test
+  void getSeats_returnsUnauthorized_whenNoToken() throws Exception {
+    mockMvc.perform(get("/projections/{id}/seats", ID)).andExpect(status().isUnauthorized());
+    verify(service, never()).getSeats(any());
   }
 
   @Test

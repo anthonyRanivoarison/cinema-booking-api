@@ -7,6 +7,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.poja.cinebook.client.TmdbClient;
+import io.poja.cinebook.client.TmdbGenre;
+import io.poja.cinebook.client.TmdbMovie;
+import io.poja.cinebook.client.TmdbSearchResult;
 import io.poja.cinebook.dto.request.MovieRequest;
 import io.poja.cinebook.entity.Movie;
 import io.poja.cinebook.entity.enums.MovieGender;
@@ -37,6 +41,7 @@ class MovieServiceTest {
 
   @Mock private MovieRepository repository;
   @Mock private MovieMapper mapper;
+  @Mock private TmdbClient tmdbClient;
   @InjectMocks private MovieService service;
 
   @Test
@@ -162,6 +167,59 @@ class MovieServiceTest {
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage(String.format("Movie to delete with ID %s not found", ID));
     verify(repository, never()).deleteById(any(UUID.class));
+  }
+
+  @Test
+  void importFromTmdb_createsMovieFromTmdbData() {
+    TmdbMovie tmdb =
+        new TmdbMovie(
+            693134,
+            "Dune: Part Two",
+            "Paul Atreides continues his journey.",
+            148,
+            "/poster.jpg",
+            List.of(new TmdbGenre(28, "Action")));
+    when(repository.findByTmdbId(693134L)).thenReturn(Optional.empty());
+    when(tmdbClient.getMovie(693134)).thenReturn(tmdb);
+    when(tmdbClient.getTrailerYoutubeKey(693134)).thenReturn("abc123");
+    var entity = entity();
+    when(mapper.toEntity(any(Movie.class))).thenReturn(entity);
+    when(repository.save(entity)).thenReturn(entity);
+    when(mapper.toModel(entity)).thenReturn(model());
+
+    Movie result = service.importFromTmdb(693134);
+
+    ArgumentCaptor<Movie> captor = ArgumentCaptor.forClass(Movie.class);
+    verify(mapper).toEntity(captor.capture());
+    Movie captured = captor.getValue();
+    assertThat(captured.title()).isEqualTo("Dune: Part Two");
+    assertThat(captured.gender()).isEqualTo(MovieGender.ACTION);
+    assertThat(captured.duration()).isEqualTo(Duration.ofMinutes(148));
+    assertThat(captured.posterUrl()).isEqualTo("https://image.tmdb.org/t/p/w500/poster.jpg");
+    assertThat(captured.trailerYoutubeKey()).isEqualTo("abc123");
+    assertThat(captured.tmdbId()).isEqualTo(693134L);
+    assertThat(result).isEqualTo(model());
+  }
+
+  @Test
+  void importFromTmdb_throwsConflict_whenAlreadyImported() {
+    when(repository.findByTmdbId(693134L)).thenReturn(Optional.of(entity()));
+
+    assertThatThrownBy(() -> service.importFromTmdb(693134))
+        .isInstanceOf(ApiException.class)
+        .hasMessageContaining("already imported");
+    verify(repository, never()).save(any());
+  }
+
+  @Test
+  void searchTmdb_returnsResults() {
+    when(tmdbClient.search("dune"))
+        .thenReturn(List.of(new TmdbSearchResult(693134, "Dune", "overview", "2021-10-22", null)));
+
+    List<TmdbSearchResult> results = service.searchTmdb("dune");
+
+    assertThat(results).hasSize(1);
+    assertThat(results.get(0).title()).isEqualTo("Dune");
   }
 
   private MovieRequest request() {

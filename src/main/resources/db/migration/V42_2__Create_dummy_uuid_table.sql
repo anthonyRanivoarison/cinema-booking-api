@@ -5,5 +5,5 @@ create table if not exists dummy_uuid
 );
 
 insert into dummy_uuid (id)
-values ('dummy-uuid-id-1')
-;
+select 'dummy-uuid-id-1'
+where not exists (select 1 from dummy_uuid where id = 'dummy-uuid-id-1');

@@ -29,6 +29,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class MovieServiceTest {
@@ -47,13 +50,15 @@ class MovieServiceTest {
   @Test
   void getAll_returnsMappedMovies() {
     var entity = entity();
-    when(repository.findAll()).thenReturn(List.of(entity));
-    when(mapper.toModel(List.of(entity))).thenReturn(List.of(model()));
+    var pageable = PageRequest.of(0, 20);
+    Page<JMovie> page = new PageImpl<>(List.of(entity), pageable, 1);
+    when(repository.findAll(pageable)).thenReturn(page);
+    when(mapper.toModel(entity)).thenReturn(model());
 
-    List<Movie> result = service.getAll();
+    Page<Movie> result = service.getAll(pageable);
 
-    assertThat(result).containsExactly(model());
-    verify(repository).findAll();
+    assertThat(result.getContent()).containsExactly(model());
+    verify(repository).findAll(pageable);
   }
 
   @Test

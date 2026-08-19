@@ -11,6 +11,8 @@ import io.poja.cinebook.config.JwtTokenProvider;
 import io.poja.cinebook.dto.request.LoginRequest;
 import io.poja.cinebook.dto.request.SignUpRequest;
 import io.poja.cinebook.dto.response.AuthResponse;
+import io.poja.cinebook.endpoint.event.EventProducer;
+import io.poja.cinebook.endpoint.event.model.SendEmailRequested;
 import io.poja.cinebook.entity.User;
 import io.poja.cinebook.entity.enums.UserRole;
 import io.poja.cinebook.exception.ApiException;
@@ -18,6 +20,7 @@ import io.poja.cinebook.mapper.UserMapper;
 import io.poja.cinebook.repository.UserRepository;
 import io.poja.cinebook.repository.model.JUser;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -46,6 +49,7 @@ class AuthServiceTest {
   @Mock private UserMapper mapper;
   @Mock private JwtTokenProvider jwtProvider;
   @Mock private PasswordEncoder passwordEncoder;
+  @Mock private EventProducer<SendEmailRequested> eventProducer;
   @InjectMocks private AuthService service;
 
   @Test
@@ -74,6 +78,13 @@ class AuthServiceTest {
     assertThat(response.token()).isEqualTo(TOKEN);
     assertThat(response.userId()).isEqualTo(captured.id());
     assertThat(response.role()).isEqualTo(UserRole.CLIENT);
+
+    ArgumentCaptor<List<SendEmailRequested>> eventCaptor = ArgumentCaptor.forClass(List.class);
+    verify(eventProducer).accept(eventCaptor.capture());
+    SendEmailRequested event = eventCaptor.getValue().get(0);
+    assertThat(event.getTo()).isEqualTo(EMAIL);
+    assertThat(event.getSubject()).isEqualTo("Welcome to Cinema Booking!");
+    assertThat(event.getHtmlBody()).contains("Welcome to Cinema Booking");
   }
 
   @Test
@@ -87,6 +98,7 @@ class AuthServiceTest {
         .isEqualTo(HttpStatus.CONFLICT);
     verify(repository, never()).save(any());
     verify(passwordEncoder, never()).encode(any());
+    verify(eventProducer, never()).accept(any());
   }
 
   @Test

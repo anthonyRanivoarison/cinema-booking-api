@@ -1,8 +1,8 @@
 package io.poja.cinebook.endpoint.rest.controller.projection;
 
+import static io.poja.cinebook.entity.enums.UserRole.ADMIN;
 import static io.poja.cinebook.entity.enums.UserRole.CLIENT;
 import static io.poja.cinebook.entity.enums.UserRole.EMPLOYEE;
-import static io.poja.cinebook.entity.enums.UserRole.MANAGER;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -69,7 +69,7 @@ class ProjectionControllerTest {
     when(service.getAll()).thenReturn(List.of(model()));
 
     mockMvc
-        .perform(get("/projections").header("Authorization", bearer(MANAGER)))
+        .perform(get("/projections").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(ID.toString()))
         .andExpect(jsonPath("$[0].datetime").value("2026-08-10T19:30:00Z"))
@@ -85,7 +85,7 @@ class ProjectionControllerTest {
     when(service.getById(ID)).thenReturn(model());
 
     mockMvc
-        .perform(get("/projections/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(get("/projections/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(ID.toString()));
 
@@ -107,7 +107,7 @@ class ProjectionControllerTest {
     mockMvc
         .perform(
             post("/projections")
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
         .andExpect(status().isCreated())
@@ -140,7 +140,7 @@ class ProjectionControllerTest {
     mockMvc
         .perform(
             put("/projections/{id}", ID)
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
         .andExpect(status().isOk())
@@ -152,7 +152,7 @@ class ProjectionControllerTest {
   @Test
   void delete_removesProjection() throws Exception {
     mockMvc
-        .perform(delete("/projections/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(delete("/projections/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isNoContent());
 
     verify(service).delete(ID);
@@ -163,7 +163,7 @@ class ProjectionControllerTest {
     when(service.getById(ID)).thenThrow(new EntityNotFoundException("Projection not found"));
 
     mockMvc
-        .perform(get("/projections/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(get("/projections/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.message").value("Projection not found"))
         .andExpect(jsonPath("$.status").value(404));
@@ -174,7 +174,7 @@ class ProjectionControllerTest {
     mockMvc
         .perform(
             post("/projections")
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{not json"))
         .andExpect(status().isBadRequest());
@@ -183,7 +183,7 @@ class ProjectionControllerTest {
   @Test
   void getById_returnsBadRequest_whenIdNotUuid() throws Exception {
     mockMvc
-        .perform(get("/projections/{id}", "abc").header("Authorization", bearer(MANAGER)))
+        .perform(get("/projections/{id}", "abc").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isBadRequest());
   }
 
@@ -257,7 +257,7 @@ class ProjectionControllerTest {
     mockMvc
         .perform(
             post("/projections")
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody()))
         .andExpect(status().isCreated());

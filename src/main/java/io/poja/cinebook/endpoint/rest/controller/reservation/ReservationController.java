@@ -23,6 +23,11 @@ public class ReservationController {
     return service.getAll();
   }
 
+  @GetMapping("/me")
+  public List<Reservation> getMe(@AuthenticationPrincipal Jwt jwt) {
+    return service.getByUserId(jwt.getSubject());
+  }
+
   @GetMapping("/{id}")
   public Reservation getById(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
     return service.getById(id, jwt.getSubject(), jwt.getClaimAsString("role"));
@@ -32,6 +37,11 @@ public class ReservationController {
   @ResponseStatus(HttpStatus.CREATED)
   public Reservation create(@RequestBody @Valid CreateReservationRequest request) {
     return service.create(request);
+  }
+
+  @PatchMapping("/{id}/approve")
+  public Reservation approve(@PathVariable UUID id) {
+    return service.approve(id);
   }
 
   @PutMapping("/{id}")

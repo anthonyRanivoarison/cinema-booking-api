@@ -8,14 +8,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.poja.cinebook.dto.request.CreateReservationRequest;
+import io.poja.cinebook.endpoint.event.EventProducer;
+import io.poja.cinebook.endpoint.event.model.SendEmailRequested;
 import io.poja.cinebook.entity.Reservation;
+import io.poja.cinebook.entity.enums.MovieGender;
 import io.poja.cinebook.entity.enums.UserRole;
 import io.poja.cinebook.exception.ApiException;
 import io.poja.cinebook.exception.ForbiddenException;
 import io.poja.cinebook.mapper.ReservationMapper;
 import io.poja.cinebook.repository.ProjectionRepository;
 import io.poja.cinebook.repository.ReservationRepository;
+import io.poja.cinebook.repository.UserRepository;
+import io.poja.cinebook.repository.model.JMovie;
+import io.poja.cinebook.repository.model.JProjection;
 import io.poja.cinebook.repository.model.JReservation;
+import io.poja.cinebook.repository.model.JUser;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -40,7 +47,10 @@ class ReservationServiceTest {
 
   @Mock private ReservationRepository repository;
   @Mock private ProjectionRepository projectionRepository;
+  @Mock private UserRepository userRepository;
   @Mock private ReservationMapper mapper;
+  @Mock private EventProducer<SendEmailRequested> eventProducer;
+  @Mock private TicketService ticketService;
   @InjectMocks private ReservationService service;
 
   @Test
@@ -56,12 +66,24 @@ class ReservationServiceTest {
   }
 
   @Test
+  void getByUserId_returnsMappedReservations() {
+    var entity = entity();
+    when(repository.findByUserId(USER_ID)).thenReturn(List.of(entity));
+    when(mapper.toModel(List.of(entity))).thenReturn(List.of(model()));
+
+    List<Reservation> result = service.getByUserId(USER_ID.toString());
+
+    assertThat(result).containsExactly(model());
+    verify(repository).findByUserId(USER_ID);
+  }
+
+  @Test
   void getById_returnsReservation_forManager() {
     var entity = entity();
     when(repository.findById(ID)).thenReturn(Optional.of(entity));
     when(mapper.toModel(entity)).thenReturn(model());
 
-    Reservation result = service.getById(ID, OTHER_USER_ID.toString(), UserRole.MANAGER.name());
+    Reservation result = service.getById(ID, OTHER_USER_ID.toString(), UserRole.ADMIN.name());
 
     assertThat(result).isEqualTo(model());
     verify(mapper).toModel(entity);
@@ -93,7 +115,7 @@ class ReservationServiceTest {
   void getById_throwsNotFound_whenMissing() {
     when(repository.findById(ID)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.getById(ID, USER_ID.toString(), UserRole.MANAGER.name()))
+    assertThatThrownBy(() -> service.getById(ID, USER_ID.toString(), UserRole.ADMIN.name()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage("Reservation not found");
   }
@@ -102,8 +124,8 @@ class ReservationServiceTest {
   void create_persistsNewReservationWithGeneratedId() {
     var request = request();
     var entity = entity();
-    when(projectionRepository.existsById(PROJECTION_ID)).thenReturn(true);
-    when(repository.findTakenSeatIdsByProjectionId(PROJECTION_ID)).thenReturn(List.of());
+    when(projectionRepository.findById(PROJECTION_ID)).thenReturn(Optional.of(projection()));
+    when(repository.findTakenOrPendingSeatIdsByProjectionId(PROJECTION_ID)).thenReturn(List.of());
     when(mapper.toEntity(any(Reservation.class))).thenReturn(entity);
     when(repository.save(entity)).thenReturn(entity);
     when(mapper.toModel(entity)).thenReturn(model());
@@ -121,11 +143,13 @@ class ReservationServiceTest {
     verify(repository).save(entity);
     verify(mapper).toModel(entity);
     assertThat(result).isEqualTo(model());
+
+    verify(eventProducer, never()).accept(any());
   }
 
   @Test
   void create_throwsNotFound_whenProjectionMissing() {
-    when(projectionRepository.existsById(PROJECTION_ID)).thenReturn(false);
+    when(projectionRepository.findById(PROJECTION_ID)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.create(request()))
         .isInstanceOf(EntityNotFoundException.class)
@@ -135,8 +159,9 @@ class ReservationServiceTest {
 
   @Test
   void create_throwsConflict_whenSeatAlreadyTaken() {
-    when(projectionRepository.existsById(PROJECTION_ID)).thenReturn(true);
-    when(repository.findTakenSeatIdsByProjectionId(PROJECTION_ID)).thenReturn(List.of(SEAT_ID));
+    when(projectionRepository.findById(PROJECTION_ID)).thenReturn(Optional.of(projection()));
+    when(repository.findTakenOrPendingSeatIdsByProjectionId(PROJECTION_ID))
+        .thenReturn(List.of(SEAT_ID));
 
     assertThatThrownBy(() -> service.create(request()))
         .isInstanceOf(ApiException.class)
@@ -199,6 +224,15 @@ class ReservationServiceTest {
 
   private JReservation entity() {
     return JReservation.builder().id(ID).build();
+  }
+
+  private JProjection projection() {
+    JMovie movie = JMovie.builder().title("Dune: Part Two").gender(MovieGender.ACTION).build();
+    return JProjection.builder().id(PROJECTION_ID).movie(movie).build();
+  }
+
+  private JUser user() {
+    return JUser.builder().id(USER_ID).email("john@example.com").build();
   }
 
   private Reservation model() {

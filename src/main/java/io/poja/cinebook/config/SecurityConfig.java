@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableMethodSecurity
@@ -28,6 +32,7 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(
       HttpSecurity http, JwtAuthenticationConverter converter) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
@@ -38,27 +43,29 @@ public class SecurityConfig {
                     .requestMatchers("/ping")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/movies/search")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/movies", "/movies/*")
                     .authenticated()
                     .requestMatchers(HttpMethod.POST, "/movies/import/*")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.POST, "/movies")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.PUT, "/movies/*")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/movies/*")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/reservations")
-                    .hasAnyRole("EMPLOYEE", "MANAGER")
+                    .hasAnyRole("EMPLOYEE", "ADMIN")
                     .requestMatchers(HttpMethod.POST, "/reservations")
                     .authenticated()
                     .requestMatchers(HttpMethod.GET, "/reservations/*")
                     .authenticated()
                     .requestMatchers(HttpMethod.PUT, "/reservations/*")
-                    .hasAnyRole("MANAGER", "EMPLOYEE")
+                    .hasAnyRole("ADMIN", "EMPLOYEE")
                     .requestMatchers(HttpMethod.DELETE, "/reservations/*")
-                    .hasAnyRole("MANAGER", "EMPLOYEE")
+                    .hasAnyRole("ADMIN", "EMPLOYEE")
+                    .requestMatchers(HttpMethod.PATCH, "/reservations/*/approve")
+                    .hasAnyRole("ADMIN", "EMPLOYEE")
                     .requestMatchers(HttpMethod.GET, "/projections")
                     .authenticated()
                     .requestMatchers(HttpMethod.GET, "/projections/*")
@@ -66,19 +73,27 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/projections/*/seats")
                     .authenticated()
                     .requestMatchers(HttpMethod.POST, "/projections")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.PUT, "/projections/*")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/projections/*")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/rooms")
                     .authenticated()
+                    .requestMatchers(HttpMethod.GET, "/rooms/*")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.POST, "/rooms")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/rooms/*")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/rooms/*")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/users")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.POST, "/users")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.PATCH, "/users/{id}/role")
-                    .hasRole("MANAGER")
+                    .hasRole("ADMIN")
                     .anyRequest()
                     .authenticated())
         .oauth2ResourceServer(
@@ -106,5 +121,17 @@ public class SecurityConfig {
   @Bean
   PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
+  }
+
+  @Bean
+  CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration config = new CorsConfiguration();
+    config.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+    config.setAllowedHeaders(List.of("*"));
+    config.setAllowCredentials(true);
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", config);
+    return source;
   }
 }

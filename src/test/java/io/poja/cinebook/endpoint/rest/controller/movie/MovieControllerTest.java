@@ -1,8 +1,8 @@
 package io.poja.cinebook.endpoint.rest.controller.movie;
 
+import static io.poja.cinebook.entity.enums.UserRole.ADMIN;
 import static io.poja.cinebook.entity.enums.UserRole.CLIENT;
 import static io.poja.cinebook.entity.enums.UserRole.EMPLOYEE;
-import static io.poja.cinebook.entity.enums.UserRole.MANAGER;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,6 +39,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -67,18 +68,18 @@ class MovieControllerTest {
 
   @Test
   void getAll_returnsMovies() throws Exception {
-    when(service.getAll()).thenReturn(List.of(model()));
+    when(service.getAll(any())).thenReturn(new PageImpl<>(List.of(model())));
 
     mockMvc
-        .perform(get("/movies").header("Authorization", bearer(MANAGER)))
+        .perform(get("/movies").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value(ID.toString()))
-        .andExpect(jsonPath("$[0].title").value(TITLE))
-        .andExpect(jsonPath("$[0].gender").value(GENDER.name()))
-        .andExpect(jsonPath("$[0].description").value(DESCRIPTION))
-        .andExpect(jsonPath("$[0].duration").value("PT2H28M"));
+        .andExpect(jsonPath("$.content[0].id").value(ID.toString()))
+        .andExpect(jsonPath("$.content[0].title").value(TITLE))
+        .andExpect(jsonPath("$.content[0].gender").value(GENDER.name()))
+        .andExpect(jsonPath("$.content[0].description").value(DESCRIPTION))
+        .andExpect(jsonPath("$.content[0].durationSeconds").value(8880));
 
-    verify(service).getAll();
+    verify(service).getAll(any());
   }
 
   @Test
@@ -86,11 +87,11 @@ class MovieControllerTest {
     when(service.getById(ID)).thenReturn(model());
 
     mockMvc
-        .perform(get("/movies/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(get("/movies/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(ID.toString()))
         .andExpect(jsonPath("$.title").value(TITLE))
-        .andExpect(jsonPath("$.duration").value("PT2H28M"));
+        .andExpect(jsonPath("$.durationSeconds").value(8880));
 
     verify(service).getById(ID);
   }
@@ -102,7 +103,7 @@ class MovieControllerTest {
     mockMvc
         .perform(
             post("/movies")
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody()))
         .andExpect(status().isCreated())
@@ -126,7 +127,7 @@ class MovieControllerTest {
     mockMvc
         .perform(
             put("/movies/{id}", ID)
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody()))
         .andExpect(status().isOk())
@@ -138,7 +139,7 @@ class MovieControllerTest {
   @Test
   void delete_removesMovie() throws Exception {
     mockMvc
-        .perform(delete("/movies/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(delete("/movies/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isNoContent());
 
     verify(service).delete(ID);
@@ -149,7 +150,7 @@ class MovieControllerTest {
     when(service.getById(ID)).thenThrow(new EntityNotFoundException("Movie not found"));
 
     mockMvc
-        .perform(get("/movies/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(get("/movies/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.message").value("Movie not found"))
         .andExpect(jsonPath("$.status").value(404));
@@ -160,7 +161,7 @@ class MovieControllerTest {
     mockMvc
         .perform(
             post("/movies")
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{not json"))
         .andExpect(status().isBadRequest());
@@ -171,7 +172,7 @@ class MovieControllerTest {
     mockMvc
         .perform(
             post("/movies")
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"description\":\"missing title, gender and duration\"}"))
         .andExpect(status().isBadRequest());
@@ -181,37 +182,37 @@ class MovieControllerTest {
   @Test
   void getById_returnsBadRequest_whenIdNotUuid() throws Exception {
     mockMvc
-        .perform(get("/movies/{id}", "abc").header("Authorization", bearer(MANAGER)))
+        .perform(get("/movies/{id}", "abc").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isBadRequest());
   }
 
   @Test
   void getAll_returnsUnauthorized_whenNoToken() throws Exception {
     mockMvc.perform(get("/movies")).andExpect(status().isUnauthorized());
-    verify(service, never()).getAll();
+    verify(service, never()).getAll(any());
   }
 
   @Test
   void getAll_returnsOk_forClientRole() throws Exception {
-    when(service.getAll()).thenReturn(List.of(model()));
+    when(service.getAll(any())).thenReturn(new PageImpl<>(List.of(model())));
 
     mockMvc
         .perform(get("/movies").header("Authorization", bearer(CLIENT)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].title").value(TITLE));
+        .andExpect(jsonPath("$.content[0].title").value(TITLE));
 
-    verify(service).getAll();
+    verify(service).getAll(any());
   }
 
   @Test
   void getAll_returnsOk_forEmployeeRole() throws Exception {
-    when(service.getAll()).thenReturn(List.of(model()));
+    when(service.getAll(any())).thenReturn(new PageImpl<>(List.of(model())));
 
     mockMvc
         .perform(get("/movies").header("Authorization", bearer(EMPLOYEE)))
         .andExpect(status().isOk());
 
-    verify(service).getAll();
+    verify(service).getAll(any());
   }
 
   @Test
@@ -233,7 +234,7 @@ class MovieControllerTest {
     mockMvc
         .perform(
             post("/movies")
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody()))
         .andExpect(status().isCreated());
@@ -244,7 +245,7 @@ class MovieControllerTest {
     when(service.importFromTmdb(anyInt())).thenReturn(model());
 
     mockMvc
-        .perform(post("/movies/import/{tmdbId}", 693134).header("Authorization", bearer(MANAGER)))
+        .perform(post("/movies/import/{tmdbId}", 693134).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.title").value(TITLE));
 
@@ -265,7 +266,7 @@ class MovieControllerTest {
 
     mockMvc
         .perform(
-            get("/movies/search").param("query", "dune").header("Authorization", bearer(MANAGER)))
+            get("/movies/search").param("query", "dune").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].title").value("Dune"));
 

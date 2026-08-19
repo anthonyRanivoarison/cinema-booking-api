@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -22,16 +24,25 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class MovieService {
   private static final Map<String, MovieGender> TMDB_GENRE_BY_NAME =
-      Map.of(
-          "Action", MovieGender.ACTION,
-          "Adventure", MovieGender.ACTION,
-          "Animation", MovieGender.ANIMATION,
-          "Comedy", MovieGender.COMEDY,
-          "Drama", MovieGender.DRAMA,
-          "Romance", MovieGender.ROMANCE,
-          "Science Fiction", MovieGender.SCIFI,
-          "Fantasy", MovieGender.FANTASY,
-          "Thriller", MovieGender.THRILLER);
+      Map.ofEntries(
+          Map.entry("Action", MovieGender.ACTION),
+          Map.entry("Adventure", MovieGender.ACTION),
+          Map.entry("War", MovieGender.ACTION),
+          Map.entry("Western", MovieGender.ACTION),
+          Map.entry("Animation", MovieGender.ANIMATION),
+          Map.entry("Comedy", MovieGender.COMEDY),
+          Map.entry("Family", MovieGender.COMEDY),
+          Map.entry("Drama", MovieGender.DRAMA),
+          Map.entry("Documentary", MovieGender.DRAMA),
+          Map.entry("History", MovieGender.DRAMA),
+          Map.entry("Music", MovieGender.DRAMA),
+          Map.entry("Romance", MovieGender.ROMANCE),
+          Map.entry("Science Fiction", MovieGender.SCIFI),
+          Map.entry("Fantasy", MovieGender.FANTASY),
+          Map.entry("Thriller", MovieGender.THRILLER),
+          Map.entry("Horror", MovieGender.THRILLER),
+          Map.entry("Crime", MovieGender.THRILLER),
+          Map.entry("Mystery", MovieGender.THRILLER));
 
   private final MovieMapper mapper;
   private final MovieRepository repository;
@@ -42,8 +53,8 @@ public class MovieService {
         repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Movie not found")));
   }
 
-  public List<Movie> getAll() {
-    return mapper.toModel(repository.findAll());
+  public Page<Movie> getAll(Pageable pageable) {
+    return repository.findAll(pageable).map(mapper::toModel);
   }
 
   public Movie create(MovieRequest request) {
@@ -97,7 +108,7 @@ public class MovieService {
             .title(tmdb.title())
             .gender(mapGender(tmdb))
             .description(tmdb.overview())
-            .duration(Duration.ofMinutes(tmdb.runtime()))
+            .duration(tmdb.runtime() != null ? Duration.ofMinutes(tmdb.runtime()) : null)
             .posterUrl(TmdbClient.composePosterUrl(tmdb.posterPath()))
             .trailerYoutubeKey(tmdbClient.getTrailerYoutubeKey(tmdbId))
             .tmdbId((long) tmdbId)

@@ -1,8 +1,8 @@
 package io.poja.cinebook.endpoint.rest.controller.reservation;
 
+import static io.poja.cinebook.entity.enums.UserRole.ADMIN;
 import static io.poja.cinebook.entity.enums.UserRole.CLIENT;
 import static io.poja.cinebook.entity.enums.UserRole.EMPLOYEE;
-import static io.poja.cinebook.entity.enums.UserRole.MANAGER;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -69,7 +69,7 @@ class ReservationControllerTest {
     when(service.getAll()).thenReturn(List.of(model()));
 
     mockMvc
-        .perform(get("/reservations").header("Authorization", bearer(MANAGER)))
+        .perform(get("/reservations").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(ID.toString()))
         .andExpect(jsonPath("$[0].userId").value(USER_ID.toString()))
@@ -80,16 +80,35 @@ class ReservationControllerTest {
   }
 
   @Test
+  void getMe_returnsCurrentUserReservations() throws Exception {
+    when(service.getByUserId(USER_ID.toString())).thenReturn(List.of(model()));
+
+    mockMvc
+        .perform(get("/reservations/me").header("Authorization", bearer(CLIENT)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(ID.toString()))
+        .andExpect(jsonPath("$[0].userId").value(USER_ID.toString()));
+
+    verify(service).getByUserId(USER_ID.toString());
+  }
+
+  @Test
+  void getMe_returnsUnauthorized_whenNoToken() throws Exception {
+    mockMvc.perform(get("/reservations/me")).andExpect(status().isUnauthorized());
+    verify(service, never()).getByUserId(anyString());
+  }
+
+  @Test
   void getById_returnsReservation() throws Exception {
     when(service.getById(eq(ID), anyString(), anyString())).thenReturn(model());
 
     mockMvc
-        .perform(get("/reservations/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(get("/reservations/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(ID.toString()))
         .andExpect(jsonPath("$.userId").value(USER_ID.toString()));
 
-    verify(service).getById(eq(ID), eq(USER_ID.toString()), eq(MANAGER.name()));
+    verify(service).getById(eq(ID), eq(USER_ID.toString()), eq(ADMIN.name()));
   }
 
   @Test
@@ -122,7 +141,7 @@ class ReservationControllerTest {
     mockMvc
         .perform(
             put("/reservations/{id}", ID)
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(reservationBody()))
         .andExpect(status().isOk())
@@ -134,7 +153,7 @@ class ReservationControllerTest {
   @Test
   void delete_removesReservation() throws Exception {
     mockMvc
-        .perform(delete("/reservations/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(delete("/reservations/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isNoContent());
 
     verify(service).delete(ID);
@@ -146,7 +165,7 @@ class ReservationControllerTest {
         .thenThrow(new EntityNotFoundException("Reservation not found"));
 
     mockMvc
-        .perform(get("/reservations/{id}", ID).header("Authorization", bearer(MANAGER)))
+        .perform(get("/reservations/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.message").value("Reservation not found"))
         .andExpect(jsonPath("$.status").value(404));
@@ -192,7 +211,7 @@ class ReservationControllerTest {
   @Test
   void getById_returnsBadRequest_whenIdNotUuid() throws Exception {
     mockMvc
-        .perform(get("/reservations/{id}", "abc").header("Authorization", bearer(MANAGER)))
+        .perform(get("/reservations/{id}", "abc").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isBadRequest());
   }
 

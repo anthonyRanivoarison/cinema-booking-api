@@ -4,12 +4,15 @@ import io.poja.cinebook.config.JwtTokenProvider;
 import io.poja.cinebook.dto.request.LoginRequest;
 import io.poja.cinebook.dto.request.SignUpRequest;
 import io.poja.cinebook.dto.response.AuthResponse;
+import io.poja.cinebook.endpoint.event.EventProducer;
+import io.poja.cinebook.endpoint.event.model.SendEmailRequested;
 import io.poja.cinebook.entity.User;
 import io.poja.cinebook.entity.enums.UserRole;
 import io.poja.cinebook.exception.ApiException;
 import io.poja.cinebook.mapper.UserMapper;
 import io.poja.cinebook.repository.UserRepository;
 import io.poja.cinebook.repository.model.JUser;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,6 +26,7 @@ public class AuthService {
   private final UserMapper mapper;
   private final JwtTokenProvider jwtProvider;
   private final PasswordEncoder passwordEncoder;
+  private final EventProducer<SendEmailRequested> eventProducer;
 
   public AuthResponse signup(SignUpRequest request) {
     repository
@@ -43,6 +47,13 @@ public class AuthService {
             .role(UserRole.CLIENT)
             .build();
     repository.save(mapper.toEntity(user));
+    eventProducer.accept(
+        List.of(
+            SendEmailRequested.builder()
+                .to(user.email())
+                .subject("Welcome to Cinema Booking!")
+                .htmlBody(welcomeHtml(user.firstName()))
+                .build()));
     return new AuthResponse(jwtProvider.generateToken(user), user.id(), user.role());
   }
 
@@ -56,5 +67,19 @@ public class AuthService {
     }
     User user = mapper.toModel(entity);
     return new AuthResponse(jwtProvider.generateToken(user), user.id(), user.role());
+  }
+
+  private String welcomeHtml(String firstName) {
+    return """
+           <html>
+             <body>
+               <p>Dear %s,</p>
+               <p>Welcome to Cinema Booking! Your account has been created successfully.</p>
+               <p>You can now book your seats for your favorite movies.</p>
+               <p>Best regards,<br>The Cinema Booking Team</p>
+             </body>
+           </html>
+           """
+        .formatted(firstName);
   }
 }

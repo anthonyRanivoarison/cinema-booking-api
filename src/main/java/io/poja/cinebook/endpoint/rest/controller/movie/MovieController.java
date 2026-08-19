@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +19,9 @@ public class MovieController {
   private final MovieService service;
 
   @GetMapping
-  public List<Movie> getAll() {
-    return service.getAll();
+  public Page<Movie> getAll(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+    return service.getAll(org.springframework.data.domain.PageRequest.of(page, size));
   }
 
   @GetMapping("/{id}")

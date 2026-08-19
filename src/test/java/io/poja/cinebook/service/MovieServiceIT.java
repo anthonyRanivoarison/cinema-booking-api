@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
@@ -29,7 +30,7 @@ class MovieServiceIT extends FacadeIT {
 
   @Test
   void getAll_returnsEmptyListOnEmptyDatabase() {
-    assertThat(service.getAll()).isEmpty();
+    assertThat(service.getAll(Pageable.unpaged())).isEmpty();
   }
 
   @Test
@@ -42,7 +43,7 @@ class MovieServiceIT extends FacadeIT {
     assertThat(created.description()).isEqualTo(DESCRIPTION);
     assertThat(created.duration()).isEqualTo(DURATION);
 
-    assertThat(service.getAll()).containsExactly(created);
+    assertThat(service.getAll(Pageable.unpaged())).containsExactly(created);
     assertThat(service.getById(created.id())).isEqualTo(created);
     assertThat(movieRepository.count()).isEqualTo(1);
   }

@@ -38,7 +38,8 @@ public class ProjectionService {
         repository
             .findById(projectionId)
             .orElseThrow(() -> new EntityNotFoundException("Projection not found"));
-    List<UUID> takenSeatIds = reservationRepository.findTakenSeatIdsByProjectionId(projectionId);
+    List<UUID> takenSeatIds =
+        reservationRepository.findTakenOrPendingSeatIdsByProjectionId(projectionId);
     return seatRepository.findByRoom_Id(projection.getRoom().getId()).stream()
         .map(
             seat ->

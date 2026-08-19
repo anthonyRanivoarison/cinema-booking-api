@@ -8,11 +8,13 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 @PojaGenerated
 @SpringBootTest(webEnvironment = RANDOM_PORT)
+@Import(EventBridgeTestConf.class)
 @Slf4j
 public class FacadeIT {
 

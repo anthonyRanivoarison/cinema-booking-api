@@ -27,6 +27,8 @@ public class ReservationMapper {
         .userId(entity.getUser().getId())
         .projectionId(entity.getProjection().getId())
         .seatIds(entity.getSeats().stream().map(JSeat::getId).toList())
+        .status(entity.getStatus())
+        .ticketUrl(entity.getTicketUrl())
         .build();
   }
 
@@ -45,6 +47,8 @@ public class ReservationMapper {
         .user(userMapper.toEntity(user))
         .projection(projectionMapper.toEntity(projection))
         .seats(seats)
+        .status(model.status())
+        .ticketUrl(model.ticketUrl())
         .build();
   }
 

@@ -70,7 +70,7 @@ class UserServiceTest {
 
   @Test
   void getAll_returnsMappedUserResponses() {
-    JUser entity = entity(UserRole.MANAGER);
+    JUser entity = entity(UserRole.ADMIN);
     when(repository.findAll()).thenReturn(List.of(entity));
 
     List<UserResponse> result = service.getAll();
@@ -83,7 +83,7 @@ class UserServiceTest {
     assertThat(response.birthDate()).isEqualTo(BIRTH_DATE);
     assertThat(response.email()).isEqualTo(EMAIL);
     assertThat(response.phone()).isEqualTo(PHONE);
-    assertThat(response.role()).isEqualTo(UserRole.MANAGER);
+    assertThat(response.role()).isEqualTo(UserRole.ADMIN);
   }
 
   @Test
@@ -131,18 +131,18 @@ class UserServiceTest {
     when(repository.findById(ID)).thenReturn(Optional.of(entity));
     when(repository.save(entity)).thenReturn(entity);
 
-    UserResponse response = service.updateRole(ID, new UpdateUserRoleRequest(UserRole.MANAGER));
+    UserResponse response = service.updateRole(ID, new UpdateUserRoleRequest(UserRole.ADMIN));
 
     verify(repository).save(entity);
-    assertThat(entity.getRole()).isEqualTo(UserRole.MANAGER);
-    assertThat(response.role()).isEqualTo(UserRole.MANAGER);
+    assertThat(entity.getRole()).isEqualTo(UserRole.ADMIN);
+    assertThat(response.role()).isEqualTo(UserRole.ADMIN);
   }
 
   @Test
   void updateRole_throwsNotFound_whenMissing() {
     when(repository.findById(ID)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.updateRole(ID, new UpdateUserRoleRequest(UserRole.MANAGER)))
+    assertThatThrownBy(() -> service.updateRole(ID, new UpdateUserRoleRequest(UserRole.ADMIN)))
         .isInstanceOf(ApiException.class)
         .hasMessage("User not found")
         .extracting(e -> ((ApiException) e).getStatus())

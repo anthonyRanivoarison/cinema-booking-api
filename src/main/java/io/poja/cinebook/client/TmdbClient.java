@@ -24,12 +24,12 @@ public class TmdbClient {
   }
 
   public TmdbMovie getMovie(int tmdbId) {
-    return client().get().uri("/movie/{id}", tmdbId).retrieve().body(TmdbMovie.class);
+    return client().get().uri(uri("/movie/{id}"), tmdbId).retrieve().body(TmdbMovie.class);
   }
 
   public String getTrailerYoutubeKey(int tmdbId) {
     TmdbVideoPage page =
-        client().get().uri("/movie/{id}/videos", tmdbId).retrieve().body(TmdbVideoPage.class);
+        client().get().uri(uri("/movie/{id}/videos"), tmdbId).retrieve().body(TmdbVideoPage.class);
     if (page == null || page.results() == null) {
       return null;
     }
@@ -45,10 +45,22 @@ public class TmdbClient {
     TmdbSearchPage page =
         client()
             .get()
-            .uri("/search/movie?query={query}", query)
+            .uri(uri("/search/movie?query={query}"), query)
             .retrieve()
             .body(TmdbSearchPage.class);
     return page == null || page.results() == null ? List.of() : page.results();
+  }
+
+  public List<TmdbSearchResult> getPopularMovies(int yearFrom, int yearTo, int page) {
+    String path =
+        String.format(
+            "/discover/movie?primary_release_date.gte=%d-01-01&primary_release_date.lte=%d-12-31&sort_by=popularity.desc&page=%d",
+            yearFrom, yearTo, page);
+    TmdbSearchPage tmdbSearchPage =
+        client().get().uri(uri(path)).retrieve().body(TmdbSearchPage.class);
+    return tmdbSearchPage == null || tmdbSearchPage.results() == null
+        ? List.of()
+        : tmdbSearchPage.results();
   }
 
   private RestClient client() {
@@ -59,7 +71,6 @@ public class TmdbClient {
     }
     return RestClient.builder()
         .baseUrl(apiUrl)
-        .defaultHeader("Authorization", "Bearer " + apiKey)
         .defaultStatusHandler(
             HttpStatusCode::isError,
             (request, response) -> {
@@ -69,6 +80,10 @@ public class TmdbClient {
               throw new ApiException("TMDB request failed with status " + code.value(), status);
             })
         .build();
+  }
+
+  private String uri(String path) {
+    return path + (path.contains("?") ? "&" : "?") + "api_key=" + apiKey;
   }
 
   public static String composePosterUrl(String posterPath) {

@@ -1,0 +1,7 @@
+ALTER TABLE reservation ADD COLUMN status VARCHAR(20) DEFAULT 'PENDING' NOT NULL;
+ALTER TABLE reservation ADD COLUMN ticket_url VARCHAR(512);
+
+UPDATE reservation SET status = 'APPROVED' WHERE status = 'PENDING';
+
+ALTER TABLE "user" ALTER COLUMN role TYPE VARCHAR(20);
+UPDATE "user" SET role = 'ADMIN' WHERE role = 'MANAGER';

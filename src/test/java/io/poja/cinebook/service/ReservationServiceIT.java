@@ -67,7 +67,7 @@ class ReservationServiceIT extends FacadeIT {
     assertThat(created.seatIds()).containsExactlyInAnyOrder(seatA.getId(), seatB.getId());
 
     assertThat(service.getAll()).containsExactly(created);
-    assertThat(service.getById(created.id(), UUID.randomUUID().toString(), UserRole.MANAGER.name()))
+    assertThat(service.getById(created.id(), UUID.randomUUID().toString(), UserRole.ADMIN.name()))
         .isEqualTo(created);
     assertThat(reservationRepository.count()).isEqualTo(1);
   }
@@ -104,7 +104,7 @@ class ReservationServiceIT extends FacadeIT {
     assertThatThrownBy(
             () ->
                 service.getById(
-                    UUID.randomUUID(), UUID.randomUUID().toString(), UserRole.MANAGER.name()))
+                    UUID.randomUUID(), UUID.randomUUID().toString(), UserRole.ADMIN.name()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage("Reservation not found");
   }
@@ -132,7 +132,7 @@ class ReservationServiceIT extends FacadeIT {
     assertThat(updated.seatIds()).containsExactly(seatA.getId());
     assertThat(
             service
-                .getById(created.id(), UUID.randomUUID().toString(), UserRole.MANAGER.name())
+                .getById(created.id(), UUID.randomUUID().toString(), UserRole.ADMIN.name())
                 .seatIds())
         .containsExactly(seatA.getId());
   }
@@ -156,8 +156,7 @@ class ReservationServiceIT extends FacadeIT {
     assertThat(reservationRepository.count()).isZero();
     assertThatThrownBy(
             () ->
-                service.getById(
-                    created.id(), UUID.randomUUID().toString(), UserRole.MANAGER.name()))
+                service.getById(created.id(), UUID.randomUUID().toString(), UserRole.ADMIN.name()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage("Reservation not found");
   }

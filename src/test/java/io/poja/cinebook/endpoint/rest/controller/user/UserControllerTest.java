@@ -1,8 +1,8 @@
 package io.poja.cinebook.endpoint.rest.controller.user;
 
+import static io.poja.cinebook.entity.enums.UserRole.ADMIN;
 import static io.poja.cinebook.entity.enums.UserRole.CLIENT;
 import static io.poja.cinebook.entity.enums.UserRole.EMPLOYEE;
-import static io.poja.cinebook.entity.enums.UserRole.MANAGER;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -64,17 +64,17 @@ class UserControllerTest {
 
   @Test
   void getAll_returnsUsers() throws Exception {
-    when(service.getAll()).thenReturn(List.of(userResponse(MANAGER)));
+    when(service.getAll()).thenReturn(List.of(userResponse(ADMIN)));
 
     mockMvc
-        .perform(get("/users").header("Authorization", bearer(MANAGER)))
+        .perform(get("/users").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(ID.toString()))
         .andExpect(jsonPath("$[0].firstName").value(FIRST_NAME))
         .andExpect(jsonPath("$[0].lastName").value(LAST_NAME))
         .andExpect(jsonPath("$[0].email").value(EMAIL))
         .andExpect(jsonPath("$[0].phone").value(PHONE))
-        .andExpect(jsonPath("$[0].role").value(MANAGER.name()));
+        .andExpect(jsonPath("$[0].role").value(ADMIN.name()));
 
     verify(service).getAll();
   }
@@ -86,7 +86,7 @@ class UserControllerTest {
     mockMvc
         .perform(
             post("/users")
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     objectMapper.writeValueAsString(
@@ -120,22 +120,22 @@ class UserControllerTest {
   @Test
   void updateRole_updatesUserRole() throws Exception {
     when(service.updateRole(eq(ID), any(UpdateUserRoleRequest.class)))
-        .thenReturn(userResponse(MANAGER));
+        .thenReturn(userResponse(ADMIN));
 
     mockMvc
         .perform(
             patch("/users/{id}/role", ID)
-                .header("Authorization", bearer(MANAGER))
+                .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"role\":\"MANAGER\"}"))
+                .content("{\"role\":\"ADMIN\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(ID.toString()))
-        .andExpect(jsonPath("$.role").value(MANAGER.name()));
+        .andExpect(jsonPath("$.role").value(ADMIN.name()));
 
     ArgumentCaptor<UpdateUserRoleRequest> captor =
         ArgumentCaptor.forClass(UpdateUserRoleRequest.class);
     verify(service).updateRole(eq(ID), captor.capture());
-    org.assertj.core.api.Assertions.assertThat(captor.getValue().role()).isEqualTo(MANAGER);
+    org.assertj.core.api.Assertions.assertThat(captor.getValue().role()).isEqualTo(ADMIN);
   }
 
   @Test

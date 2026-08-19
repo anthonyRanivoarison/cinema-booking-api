@@ -174,7 +174,8 @@ class ProjectionServiceTest {
     JSeat seatB = JSeat.builder().id(seatBId).number("A2").build();
     when(repository.findById(ID)).thenReturn(Optional.of(projection));
     when(seatRepository.findByRoom_Id(ROOM_ID)).thenReturn(List.of(seatA, seatB));
-    when(reservationRepository.findTakenSeatIdsByProjectionId(ID)).thenReturn(List.of(seatBId));
+    when(reservationRepository.findTakenOrPendingSeatIdsByProjectionId(ID))
+        .thenReturn(List.of(seatBId));
 
     List<SeatAvailability> result = service.getSeats(ID);
 

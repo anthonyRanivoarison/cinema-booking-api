@@ -58,7 +58,7 @@ public class TicketService {
       String bucketKey = "tickets/" + reservation.id() + ".pdf";
       bucketComponent.upload(tempFile, bucketKey);
 
-      return bucketComponent.presign(bucketKey, java.time.Duration.ofDays(365)).toString();
+      return bucketComponent.presign(bucketKey, java.time.Duration.ofDays(7)).toString();
     } catch (Exception e) {
       throw new RuntimeException("Failed to generate ticket: " + e.getMessage(), e);
     }

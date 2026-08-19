@@ -51,6 +51,16 @@ public class TmdbClient {
     return page == null || page.results() == null ? List.of() : page.results();
   }
 
+  public List<TmdbSearchResult> getPopularMovies(int yearFrom, int yearTo, int page) {
+    String path =
+        String.format(
+            "/discover/movie?primary_release_date.gte=%d-01-01&primary_release_date.lte=%d-12-31&sort_by=popularity.desc&page=%d",
+            yearFrom, yearTo, page);
+    TmdbSearchResult[] results =
+        client().get().uri(uri(path)).retrieve().body(TmdbSearchResult[].class);
+    return results == null ? List.of() : List.of(results);
+  }
+
   private RestClient client() {
     if (apiKey == null || apiKey.isBlank()) {
       throw new ApiException(

@@ -7,5 +7,5 @@ VALUES (
     'admin@example.com',
     '$2b$10$4PEUrIM8.1.YKx9h0ElDF.wbfNF1cw5ip2agDMBpKCPavVvMrk4R2',
     NULL,
-    'ADMIN'
+    'MANAGER'
 );

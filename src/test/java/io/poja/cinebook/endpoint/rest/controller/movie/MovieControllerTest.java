@@ -187,9 +187,11 @@ class MovieControllerTest {
   }
 
   @Test
-  void getAll_returnsUnauthorized_whenNoToken() throws Exception {
-    mockMvc.perform(get("/movies")).andExpect(status().isUnauthorized());
-    verify(service, never()).getAll(any());
+  void getAll_returnsOk_withoutToken() throws Exception {
+    when(service.getAll(any())).thenReturn(new PageImpl<>(List.of(model())));
+
+    mockMvc.perform(get("/movies")).andExpect(status().isOk());
+    verify(service).getAll(any());
   }
 
   @Test

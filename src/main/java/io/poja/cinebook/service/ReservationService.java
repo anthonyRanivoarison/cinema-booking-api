@@ -108,9 +108,7 @@ public class ReservationService {
         ticketService.generateAndUpload(
             mapper.toModel(jReservation), projection, primarySeat, room, user, movie);
 
-    jReservation.setStatus(ReservationStatus.APPROVED);
-    jReservation.setTicketUrl(ticketUrl);
-    JReservation saved = repository.save(jReservation);
+    repository.updateStatusAndTicketUrl(id, ReservationStatus.APPROVED, ticketUrl);
 
     String userEmail = user.getEmail();
     String movieTitle = movie != null ? movie.getTitle() : "Unknown";
@@ -134,7 +132,7 @@ public class ReservationService {
                         .formatted(userEmail, movieTitle, ticketUrl))
                 .build()));
 
-    return mapper.toModel(saved);
+    return mapper.toModel(repository.findById(id).orElseThrow());
   }
 
   public Reservation update(Reservation reservation, UUID id) {

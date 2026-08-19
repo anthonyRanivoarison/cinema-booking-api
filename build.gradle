@@ -163,6 +163,9 @@ implementation 'org.springframework.boot:spring-boot-starter-validation'
 testImplementation 'org.mockito:mockito-core:5.15.2'
 testImplementation 'net.bytebuddy:byte-buddy:1.15.11'
 testImplementation 'net.bytebuddy:byte-buddy-agent:1.15.11'
+implementation 'org.apache.pdfbox:pdfbox:3.0.3'
+implementation 'com.google.zxing:core:3.5.3'
+implementation 'com.google.zxing:javase:3.5.3'
 
 implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
 }

@@ -23,10 +23,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -44,13 +44,22 @@ class AuthServiceTest {
   private static final String ENCODED_PASSWORD = "encoded-password";
   private static final String PHONE = "+261340000000";
   private static final String TOKEN = "jwt-token";
+  private static final long EXPIRATION_MS = 3600000L;
 
   @Mock private UserRepository repository;
   @Mock private UserMapper mapper;
   @Mock private JwtTokenProvider jwtProvider;
   @Mock private PasswordEncoder passwordEncoder;
   @Mock private EventProducer<SendEmailRequested> eventProducer;
-  @InjectMocks private AuthService service;
+
+  private AuthService service;
+
+  @BeforeEach
+  void setUp() {
+    service =
+        new AuthService(
+            repository, mapper, jwtProvider, passwordEncoder, eventProducer, EXPIRATION_MS);
+  }
 
   @Test
   void signup_createsClientUserAndReturnsAuthResponse() {
@@ -78,6 +87,8 @@ class AuthServiceTest {
     assertThat(response.token()).isEqualTo(TOKEN);
     assertThat(response.userId()).isEqualTo(captured.id());
     assertThat(response.role()).isEqualTo(UserRole.CLIENT);
+    assertThat(response.email()).isEqualTo(EMAIL);
+    assertThat(response.firstName()).isEqualTo(FIRST_NAME);
 
     ArgumentCaptor<List<SendEmailRequested>> eventCaptor = ArgumentCaptor.forClass(List.class);
     verify(eventProducer).accept(eventCaptor.capture());
@@ -114,6 +125,8 @@ class AuthServiceTest {
     assertThat(response.token()).isEqualTo(TOKEN);
     assertThat(response.userId()).isEqualTo(ID);
     assertThat(response.role()).isEqualTo(UserRole.CLIENT);
+    assertThat(response.email()).isEqualTo(EMAIL);
+    assertThat(response.firstName()).isEqualTo(FIRST_NAME);
   }
 
   @Test

@@ -1,6 +1,7 @@
 package io.poja.cinebook.service;
 
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.ProjectionResponse;
 import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.mapper.ProjectionMapper;
@@ -29,8 +30,18 @@ public class ProjectionService {
             .orElseThrow(() -> new EntityNotFoundException("Projection not found")));
   }
 
-  public List<Projection> getAll() {
-    return mapper.toModel(repository.findAll());
+  public List<ProjectionResponse> getAll() {
+    List<JProjection> projections = repository.findAll();
+    return projections.stream()
+        .map(
+            p -> {
+              int totalSeats = seatRepository.findByRoom_Id(p.getRoom().getId()).size();
+              List<UUID> takenSeatIds =
+                  reservationRepository.findTakenOrPendingSeatIdsByProjectionId(p.getId());
+              int availableSeats = totalSeats - takenSeatIds.size();
+              return mapper.toResponse(p, availableSeats);
+            })
+        .toList();
   }
 
   public List<SeatAvailability> getSeats(UUID projectionId) {

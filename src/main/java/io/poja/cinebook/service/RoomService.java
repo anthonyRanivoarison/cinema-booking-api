@@ -43,13 +43,13 @@ public class RoomService {
     return toRoomResponse(jRoom, seats);
   }
 
-  public List<Room> getAll() {
+  public List<RoomResponse> getAll() {
     List<JRoom> jRooms = repository.findAll();
     return jRooms.stream()
         .map(
             jRoom -> {
               List<JSeat> seats = seatRepository.findByRoom_Id(jRoom.getId());
-              return mapper.toModel(jRoom, seats);
+              return toRoomResponse(jRoom, seats);
             })
         .toList();
   }

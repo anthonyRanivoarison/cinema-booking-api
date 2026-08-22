@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.poja.cinebook.conf.FacadeIT;
 import io.poja.cinebook.dto.request.CreateReservationRequest;
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.ProjectionResponse;
 import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.entity.enums.MovieGender;
@@ -61,7 +62,7 @@ class ProjectionServiceIT extends FacadeIT {
     assertThat(created.movieId()).isEqualTo(movie.getId());
     assertThat(created.roomId()).isEqualTo(room.getId());
 
-    assertThat(service.getAll()).containsExactly(created);
+    assertThat(service.getAll()).extracting(ProjectionResponse::id).containsExactly(created.id());
     assertThat(service.getById(created.id())).isEqualTo(created);
     assertThat(projectionRepository.count()).isEqualTo(1);
   }

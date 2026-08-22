@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.poja.cinebook.conf.FacadeIT;
 import io.poja.cinebook.dto.request.CreateReservationRequest;
+import io.poja.cinebook.dto.response.ReservationResponse;
+import io.poja.cinebook.dto.response.SeatInfo;
 import io.poja.cinebook.entity.Reservation;
 import io.poja.cinebook.entity.enums.MovieGender;
 import io.poja.cinebook.entity.enums.UserRole;
@@ -58,17 +60,23 @@ class ReservationServiceIT extends FacadeIT {
     JSeat seatA = saveSeat("A1");
     JSeat seatB = saveSeat("A2");
 
-    Reservation created = service.create(request(user.getId(), projection.getId(), seatA, seatB));
+    ReservationResponse created =
+        service.create(request(user.getId(), projection.getId(), seatA, seatB));
 
     assertThat(created.id()).isNotNull();
     assertThat(created.createdAt()).isNotNull();
-    assertThat(created.userId()).isEqualTo(user.getId());
-    assertThat(created.projectionId()).isEqualTo(projection.getId());
-    assertThat(created.seatIds()).containsExactlyInAnyOrder(seatA.getId(), seatB.getId());
+    assertThat(created.user().id()).isEqualTo(user.getId());
+    assertThat(created.projection().id()).isEqualTo(projection.getId());
+    assertThat(created.seats().stream().map(SeatInfo::id).toList())
+        .containsExactlyInAnyOrder(seatA.getId(), seatB.getId());
 
-    assertThat(service.getAll()).containsExactly(created);
-    assertThat(service.getById(created.id(), UUID.randomUUID().toString(), UserRole.ADMIN.name()))
-        .isEqualTo(created);
+    assertThat(service.getAll())
+        .hasSize(1)
+        .first()
+        .satisfies(r -> assertThat(r.id()).isEqualTo(created.id()));
+    assertThat(
+            service.getById(created.id(), UUID.randomUUID().toString(), UserRole.ADMIN.name()).id())
+        .isEqualTo(created.id());
     assertThat(reservationRepository.count()).isEqualTo(1);
   }
 
@@ -77,12 +85,12 @@ class ReservationServiceIT extends FacadeIT {
     JUser user = saveUser("jane@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("B1");
-    Reservation created = service.create(request(user.getId(), projection.getId(), seat));
+    ReservationResponse created = service.create(request(user.getId(), projection.getId(), seat));
 
-    Reservation result =
+    ReservationResponse result =
         service.getById(created.id(), user.getId().toString(), UserRole.CLIENT.name());
 
-    assertThat(result).isEqualTo(created);
+    assertThat(result.id()).isEqualTo(created.id());
   }
 
   @Test
@@ -90,7 +98,7 @@ class ReservationServiceIT extends FacadeIT {
     JUser owner = saveUser("owner@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("C1");
-    Reservation created = service.create(request(owner.getId(), projection.getId(), seat));
+    ReservationResponse created = service.create(request(owner.getId(), projection.getId(), seat));
 
     assertThatThrownBy(
             () ->
@@ -115,7 +123,8 @@ class ReservationServiceIT extends FacadeIT {
     JProjection projection = saveProjection();
     JSeat seatA = saveSeat("D1");
     JSeat seatB = saveSeat("D2");
-    Reservation created = service.create(request(user.getId(), projection.getId(), seatA, seatB));
+    ReservationResponse created =
+        service.create(request(user.getId(), projection.getId(), seatA, seatB));
 
     Reservation updateRequest =
         Reservation.builder()
@@ -126,20 +135,32 @@ class ReservationServiceIT extends FacadeIT {
             .seatIds(List.of(seatA.getId()))
             .build();
 
-    Reservation updated = service.update(updateRequest, created.id());
+    ReservationResponse updated = service.update(updateRequest, created.id());
 
     assertThat(updated.id()).isEqualTo(created.id());
-    assertThat(updated.seatIds()).containsExactly(seatA.getId());
+    assertThat(updated.seats().stream().map(SeatInfo::id).toList()).containsExactly(seatA.getId());
     assertThat(
             service
                 .getById(created.id(), UUID.randomUUID().toString(), UserRole.ADMIN.name())
-                .seatIds())
+                .seats()
+                .stream()
+                .map(SeatInfo::id)
+                .toList())
         .containsExactly(seatA.getId());
   }
 
   @Test
   void update_throwsNotFound_whenMissing() {
-    assertThatThrownBy(() -> service.update(reservationModel(), UUID.randomUUID()))
+    Reservation dummy =
+        Reservation.builder()
+            .id(UUID.randomUUID())
+            .createdAt(Instant.now())
+            .userId(UUID.randomUUID())
+            .projectionId(UUID.randomUUID())
+            .seatIds(List.of(UUID.randomUUID()))
+            .build();
+
+    assertThatThrownBy(() -> service.update(dummy, UUID.randomUUID()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessageContaining("not found");
   }
@@ -149,7 +170,7 @@ class ReservationServiceIT extends FacadeIT {
     JUser user = saveUser("delete@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("E1");
-    Reservation created = service.create(request(user.getId(), projection.getId(), seat));
+    ReservationResponse created = service.create(request(user.getId(), projection.getId(), seat));
 
     service.delete(created.id());
 
@@ -196,16 +217,6 @@ class ReservationServiceIT extends FacadeIT {
         .userId(userId)
         .projectionId(projectionId)
         .seatIds(java.util.Arrays.stream(seats).map(JSeat::getId).toList())
-        .build();
-  }
-
-  private Reservation reservationModel() {
-    return Reservation.builder()
-        .id(UUID.randomUUID())
-        .createdAt(Instant.now())
-        .userId(UUID.randomUUID())
-        .projectionId(UUID.randomUUID())
-        .seatIds(List.of(UUID.randomUUID()))
         .build();
   }
 

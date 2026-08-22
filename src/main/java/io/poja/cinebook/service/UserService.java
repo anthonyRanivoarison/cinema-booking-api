@@ -28,6 +28,14 @@ public class UserService {
         repository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found")));
   }
 
+  public UserResponse getByEmail(String email) {
+    JUser entity =
+        repository
+            .findByEmail(email)
+            .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    return toResponse(entity);
+  }
+
   public List<UserResponse> getAll() {
     return repository.findAll().stream().map(this::toResponse).toList();
   }

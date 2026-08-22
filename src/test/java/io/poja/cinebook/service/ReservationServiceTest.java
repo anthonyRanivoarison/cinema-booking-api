@@ -8,6 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.poja.cinebook.dto.request.CreateReservationRequest;
+import io.poja.cinebook.dto.response.ProjectionSummary;
+import io.poja.cinebook.dto.response.ReservationResponse;
+import io.poja.cinebook.dto.response.UserSummary;
 import io.poja.cinebook.endpoint.event.EventProducer;
 import io.poja.cinebook.endpoint.event.model.SendEmailRequested;
 import io.poja.cinebook.entity.Reservation;
@@ -57,11 +60,11 @@ class ReservationServiceTest {
   void getAll_returnsMappedReservations() {
     var entity = entity();
     when(repository.findAll()).thenReturn(List.of(entity));
-    when(mapper.toModel(List.of(entity))).thenReturn(List.of(model()));
+    when(mapper.toResponse(List.of(entity))).thenReturn(List.of(response()));
 
-    List<Reservation> result = service.getAll();
+    List<ReservationResponse> result = service.getAll();
 
-    assertThat(result).containsExactly(model());
+    assertThat(result).containsExactly(response());
     verify(repository).findAll();
   }
 
@@ -69,42 +72,42 @@ class ReservationServiceTest {
   void getByUserId_returnsMappedReservations() {
     var entity = entity();
     when(repository.findByUserId(USER_ID)).thenReturn(List.of(entity));
-    when(mapper.toModel(List.of(entity))).thenReturn(List.of(model()));
+    when(mapper.toResponse(List.of(entity))).thenReturn(List.of(response()));
 
-    List<Reservation> result = service.getByUserId(USER_ID.toString());
+    List<ReservationResponse> result = service.getByUserId(USER_ID.toString());
 
-    assertThat(result).containsExactly(model());
+    assertThat(result).containsExactly(response());
     verify(repository).findByUserId(USER_ID);
   }
 
   @Test
   void getById_returnsReservation_forManager() {
-    var entity = entity();
+    var entity = entityWithUser();
     when(repository.findById(ID)).thenReturn(Optional.of(entity));
-    when(mapper.toModel(entity)).thenReturn(model());
+    when(mapper.toResponse(entity)).thenReturn(response());
 
-    Reservation result = service.getById(ID, OTHER_USER_ID.toString(), UserRole.ADMIN.name());
+    ReservationResponse result =
+        service.getById(ID, OTHER_USER_ID.toString(), UserRole.ADMIN.name());
 
-    assertThat(result).isEqualTo(model());
-    verify(mapper).toModel(entity);
+    assertThat(result).isEqualTo(response());
+    verify(mapper).toResponse(entity);
   }
 
   @Test
   void getById_returnsReservation_forOwnerClient() {
-    var entity = entity();
+    var entity = entityWithUser();
     when(repository.findById(ID)).thenReturn(Optional.of(entity));
-    when(mapper.toModel(entity)).thenReturn(model());
+    when(mapper.toResponse(entity)).thenReturn(response());
 
-    Reservation result = service.getById(ID, USER_ID.toString(), UserRole.CLIENT.name());
+    ReservationResponse result = service.getById(ID, USER_ID.toString(), UserRole.CLIENT.name());
 
-    assertThat(result).isEqualTo(model());
+    assertThat(result).isEqualTo(response());
   }
 
   @Test
   void getById_throwsForbidden_whenClientNotOwner() {
-    var entity = entity();
+    var entity = entityWithUser();
     when(repository.findById(ID)).thenReturn(Optional.of(entity));
-    when(mapper.toModel(entity)).thenReturn(model());
 
     assertThatThrownBy(() -> service.getById(ID, OTHER_USER_ID.toString(), UserRole.CLIENT.name()))
         .isInstanceOf(ForbiddenException.class)
@@ -128,9 +131,9 @@ class ReservationServiceTest {
     when(repository.findTakenOrPendingSeatIdsByProjectionId(PROJECTION_ID)).thenReturn(List.of());
     when(mapper.toEntity(any(Reservation.class))).thenReturn(entity);
     when(repository.save(entity)).thenReturn(entity);
-    when(mapper.toModel(entity)).thenReturn(model());
+    when(mapper.toResponse(entity)).thenReturn(response());
 
-    Reservation result = service.create(request);
+    ReservationResponse result = service.create(request);
 
     ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
     verify(mapper).toEntity(captor.capture());
@@ -141,8 +144,8 @@ class ReservationServiceTest {
     assertThat(captured.projectionId()).isEqualTo(request.projectionId());
     assertThat(captured.seatIds()).isEqualTo(request.seatIds());
     verify(repository).save(entity);
-    verify(mapper).toModel(entity);
-    assertThat(result).isEqualTo(model());
+    verify(mapper).toResponse(entity);
+    assertThat(result).isEqualTo(response());
 
     verify(eventProducer, never()).accept(any());
   }
@@ -177,13 +180,13 @@ class ReservationServiceTest {
     when(repository.findById(ID)).thenReturn(Optional.of(entity));
     when(mapper.toEntity(model())).thenReturn(entity);
     when(repository.save(entity)).thenReturn(entity);
-    when(mapper.toModel(entity)).thenReturn(model());
+    when(mapper.toResponse(entity)).thenReturn(response());
 
-    Reservation result = service.update(model(), ID);
+    ReservationResponse result = service.update(model(), ID);
 
     verify(mapper).toEntity(model());
     verify(repository).save(entity);
-    assertThat(result).isEqualTo(model());
+    assertThat(result).isEqualTo(response());
   }
 
   @Test
@@ -226,6 +229,10 @@ class ReservationServiceTest {
     return JReservation.builder().id(ID).build();
   }
 
+  private JReservation entityWithUser() {
+    return JReservation.builder().id(ID).user(JUser.builder().id(USER_ID).build()).build();
+  }
+
   private JProjection projection() {
     JMovie movie = JMovie.builder().title("Dune: Part Two").gender(MovieGender.ACTION).build();
     return JProjection.builder().id(PROJECTION_ID).movie(movie).build();
@@ -242,6 +249,16 @@ class ReservationServiceTest {
         .userId(USER_ID)
         .projectionId(PROJECTION_ID)
         .seatIds(List.of(SEAT_ID))
+        .build();
+  }
+
+  private ReservationResponse response() {
+    return ReservationResponse.builder()
+        .id(ID)
+        .createdAt(CREATED_AT)
+        .user(UserSummary.builder().id(USER_ID).firstName("John").email("john@example.com").build())
+        .projection(ProjectionSummary.builder().id(PROJECTION_ID).movie(null).room(null).build())
+        .seats(List.of())
         .build();
   }
 }

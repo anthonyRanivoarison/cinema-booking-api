@@ -5,15 +5,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.poja.cinebook.dto.response.ProjectionResponse;
 import io.poja.cinebook.entity.Movie;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.entity.Room;
+import io.poja.cinebook.entity.enums.MovieGender;
 import io.poja.cinebook.repository.model.JMovie;
 import io.poja.cinebook.repository.model.JProjection;
 import io.poja.cinebook.repository.model.JRoom;
 import io.poja.cinebook.service.MovieService;
 import io.poja.cinebook.service.RoomService;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -117,6 +120,55 @@ class ProjectionMapperTest {
   @Test
   void toEntity_mapsEmptyList() {
     assertThat(mapper.toEntity(List.of())).isEmpty();
+  }
+
+  @Test
+  void toResponse_mapsAllFields() {
+    JProjection entity = responseEntity();
+
+    ProjectionResponse result = mapper.toResponse(entity, 8);
+
+    assertThat(result.id()).isEqualTo(PROJECTION_ID);
+    assertThat(result.datetime()).isEqualTo(DATETIME);
+    assertThat(result.seatPrice()).isEqualByComparingTo(SEAT_PRICE);
+    assertThat(result.availableSeats()).isEqualTo(8);
+    assertThat(result.movie().id()).isEqualTo(MOVIE_ID);
+    assertThat(result.movie().title()).isEqualTo("Inception");
+    assertThat(result.movie().posterUrl()).isEqualTo("https://img.example.com/poster.jpg");
+    assertThat(result.movie().gender()).isEqualTo(MovieGender.ACTION);
+    assertThat(result.movie().durationSeconds()).isEqualTo(Duration.ofHours(2).getSeconds());
+    assertThat(result.room().id()).isEqualTo(ROOM_ID);
+    assertThat(result.room().number()).isEqualTo("A1");
+    assertThat(result.room().capacity()).isEqualTo(100);
+  }
+
+  @Test
+  void toResponse_handlesNullDuration() {
+    JProjection entity = responseEntity();
+    entity.getMovie().setDuration(null);
+
+    ProjectionResponse result = mapper.toResponse(entity, 5);
+
+    assertThat(result.movie().durationSeconds()).isNull();
+  }
+
+  private JProjection responseEntity() {
+    var movie =
+        JMovie.builder()
+            .id(MOVIE_ID)
+            .title("Inception")
+            .posterUrl("https://img.example.com/poster.jpg")
+            .gender(MovieGender.ACTION)
+            .duration(Duration.ofHours(2))
+            .build();
+    var room = JRoom.builder().id(ROOM_ID).number("A1").capacity(100).build();
+    return JProjection.builder()
+        .id(PROJECTION_ID)
+        .datetime(DATETIME)
+        .seatPrice(SEAT_PRICE)
+        .movie(movie)
+        .room(room)
+        .build();
   }
 
   private JProjection entity() {

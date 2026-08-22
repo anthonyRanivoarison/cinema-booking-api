@@ -60,7 +60,9 @@ class AuthControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.token").value(TOKEN))
         .andExpect(jsonPath("$.userId").value(ID.toString()))
-        .andExpect(jsonPath("$.role").value(UserRole.CLIENT.name()));
+        .andExpect(jsonPath("$.role").value(UserRole.CLIENT.name()))
+        .andExpect(jsonPath("$.email").value("john.doe@example.com"))
+        .andExpect(jsonPath("$.firstName").value("John"));
 
     verify(service).login(any(LoginRequest.class));
   }
@@ -91,12 +93,21 @@ class AuthControllerTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.token").value(TOKEN))
         .andExpect(jsonPath("$.userId").value(ID.toString()))
-        .andExpect(jsonPath("$.role").value(UserRole.CLIENT.name()));
+        .andExpect(jsonPath("$.role").value(UserRole.CLIENT.name()))
+        .andExpect(jsonPath("$.email").value("john.doe@example.com"))
+        .andExpect(jsonPath("$.firstName").value("John"));
 
     verify(service).signup(any(SignUpRequest.class));
   }
 
   private AuthResponse authResponse() {
-    return new AuthResponse(TOKEN, ID, UserRole.CLIENT);
+    return AuthResponse.builder()
+        .token(TOKEN)
+        .userId(ID)
+        .role(UserRole.CLIENT)
+        .email("john.doe@example.com")
+        .firstName("John")
+        .expiresIn(86400)
+        .build();
   }
 }

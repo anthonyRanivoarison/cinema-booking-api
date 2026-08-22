@@ -1,6 +1,7 @@
 package io.poja.cinebook.endpoint.rest.controller.reservation;
 
 import io.poja.cinebook.dto.request.CreateReservationRequest;
+import io.poja.cinebook.dto.response.ReservationResponse;
 import io.poja.cinebook.entity.Reservation;
 import io.poja.cinebook.service.ReservationService;
 import jakarta.validation.Valid;
@@ -19,33 +20,33 @@ public class ReservationController {
   private final ReservationService service;
 
   @GetMapping
-  public List<Reservation> getAll() {
+  public List<ReservationResponse> getAll() {
     return service.getAll();
   }
 
   @GetMapping("/me")
-  public List<Reservation> getMe(@AuthenticationPrincipal Jwt jwt) {
+  public List<ReservationResponse> getMe(@AuthenticationPrincipal Jwt jwt) {
     return service.getByUserId(jwt.getSubject());
   }
 
   @GetMapping("/{id}")
-  public Reservation getById(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+  public ReservationResponse getById(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
     return service.getById(id, jwt.getSubject(), jwt.getClaimAsString("role"));
   }
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public Reservation create(@RequestBody @Valid CreateReservationRequest request) {
+  public ReservationResponse create(@RequestBody @Valid CreateReservationRequest request) {
     return service.create(request);
   }
 
   @PatchMapping("/{id}/approve")
-  public Reservation approve(@PathVariable UUID id) {
+  public ReservationResponse approve(@PathVariable UUID id) {
     return service.approve(id);
   }
 
   @PutMapping("/{id}")
-  public Reservation update(@RequestBody Reservation reservation, @PathVariable UUID id) {
+  public ReservationResponse update(@RequestBody Reservation reservation, @PathVariable UUID id) {
     return service.update(reservation, id);
   }
 

@@ -1,5 +1,8 @@
 package io.poja.cinebook.mapper;
 
+import io.poja.cinebook.dto.response.MovieSummary;
+import io.poja.cinebook.dto.response.ProjectionResponse;
+import io.poja.cinebook.dto.response.RoomSummary;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.repository.model.JProjection;
 import io.poja.cinebook.service.MovieService;
@@ -28,6 +31,36 @@ public class ProjectionMapper {
 
   public List<Projection> toModel(List<JProjection> entities) {
     return entities.stream().map(this::toModel).toList();
+  }
+
+  public ProjectionResponse toResponse(JProjection entity, int availableSeats) {
+    var movie =
+        MovieSummary.builder()
+            .id(entity.getMovie().getId())
+            .title(entity.getMovie().getTitle())
+            .posterUrl(entity.getMovie().getPosterUrl())
+            .gender(entity.getMovie().getGender())
+            .durationSeconds(
+                entity.getMovie().getDuration() != null
+                    ? entity.getMovie().getDuration().getSeconds()
+                    : null)
+            .build();
+
+    var room =
+        RoomSummary.builder()
+            .id(entity.getRoom().getId())
+            .number(entity.getRoom().getNumber())
+            .capacity(entity.getRoom().getCapacity())
+            .build();
+
+    return ProjectionResponse.builder()
+        .id(entity.getId())
+        .datetime(entity.getDatetime())
+        .seatPrice(entity.getSeatPrice())
+        .movie(movie)
+        .room(room)
+        .availableSeats(availableSeats)
+        .build();
   }
 
   public JProjection toEntity(Projection model) {

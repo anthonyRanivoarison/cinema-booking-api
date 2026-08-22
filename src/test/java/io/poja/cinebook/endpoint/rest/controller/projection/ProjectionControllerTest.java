@@ -20,6 +20,9 @@ import io.poja.cinebook.config.JwtConfig;
 import io.poja.cinebook.config.JwtTokenProvider;
 import io.poja.cinebook.config.SecurityConfig;
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.MovieSummary;
+import io.poja.cinebook.dto.response.ProjectionResponse;
+import io.poja.cinebook.dto.response.RoomSummary;
 import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.entity.User;
@@ -66,7 +69,7 @@ class ProjectionControllerTest {
 
   @Test
   void getAll_returnsProjections() throws Exception {
-    when(service.getAll()).thenReturn(List.of(model()));
+    when(service.getAll()).thenReturn(List.of(response()));
 
     mockMvc
         .perform(get("/projections").header("Authorization", bearer(ADMIN)))
@@ -74,8 +77,8 @@ class ProjectionControllerTest {
         .andExpect(jsonPath("$[0].id").value(ID.toString()))
         .andExpect(jsonPath("$[0].datetime").value("2026-08-10T19:30:00Z"))
         .andExpect(jsonPath("$[0].seatPrice").value(12.5))
-        .andExpect(jsonPath("$[0].movieId").value(MOVIE_ID.toString()))
-        .andExpect(jsonPath("$[0].roomId").value(ROOM_ID.toString()));
+        .andExpect(jsonPath("$[0].movie.id").value(MOVIE_ID.toString()))
+        .andExpect(jsonPath("$[0].room.id").value(ROOM_ID.toString()));
 
     verify(service).getAll();
   }
@@ -288,6 +291,17 @@ class ProjectionControllerTest {
         .seatPrice(SEAT_PRICE)
         .movieId(MOVIE_ID)
         .roomId(ROOM_ID)
+        .build();
+  }
+
+  private ProjectionResponse response() {
+    return ProjectionResponse.builder()
+        .id(ID)
+        .datetime(DATETIME)
+        .seatPrice(SEAT_PRICE)
+        .movie(MovieSummary.builder().id(MOVIE_ID).build())
+        .room(RoomSummary.builder().id(ROOM_ID).build())
+        .availableSeats(50)
         .build();
   }
 }

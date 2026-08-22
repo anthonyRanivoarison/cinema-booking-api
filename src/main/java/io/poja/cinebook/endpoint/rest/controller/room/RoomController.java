@@ -2,7 +2,6 @@ package io.poja.cinebook.endpoint.rest.controller.room;
 
 import io.poja.cinebook.dto.request.CreateRoomRequest;
 import io.poja.cinebook.dto.response.RoomResponse;
-import io.poja.cinebook.entity.Room;
 import io.poja.cinebook.service.RoomService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -18,7 +17,7 @@ public class RoomController {
   private final RoomService service;
 
   @GetMapping
-  public List<Room> getAll() {
+  public List<RoomResponse> getAll() {
     return service.getAll();
   }
 

@@ -21,6 +21,9 @@ import io.poja.cinebook.config.JwtConfig;
 import io.poja.cinebook.config.JwtTokenProvider;
 import io.poja.cinebook.config.SecurityConfig;
 import io.poja.cinebook.dto.request.CreateReservationRequest;
+import io.poja.cinebook.dto.response.ProjectionSummary;
+import io.poja.cinebook.dto.response.ReservationResponse;
+import io.poja.cinebook.dto.response.UserSummary;
 import io.poja.cinebook.entity.Reservation;
 import io.poja.cinebook.entity.User;
 import io.poja.cinebook.entity.enums.UserRole;
@@ -66,28 +69,28 @@ class ReservationControllerTest {
 
   @Test
   void getAll_returnsReservations() throws Exception {
-    when(service.getAll()).thenReturn(List.of(model()));
+    when(service.getAll()).thenReturn(List.of(response()));
 
     mockMvc
         .perform(get("/reservations").header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(ID.toString()))
-        .andExpect(jsonPath("$[0].userId").value(USER_ID.toString()))
-        .andExpect(jsonPath("$[0].projectionId").value(PROJECTION_ID.toString()))
-        .andExpect(jsonPath("$[0].seatIds[0]").value(SEAT_ID.toString()));
+        .andExpect(jsonPath("$[0].user.id").value(USER_ID.toString()))
+        .andExpect(jsonPath("$[0].projection.id").value(PROJECTION_ID.toString()))
+        .andExpect(jsonPath("$[0].seats[0].id").value(SEAT_ID.toString()));
 
     verify(service).getAll();
   }
 
   @Test
   void getMe_returnsCurrentUserReservations() throws Exception {
-    when(service.getByUserId(USER_ID.toString())).thenReturn(List.of(model()));
+    when(service.getByUserId(USER_ID.toString())).thenReturn(List.of(response()));
 
     mockMvc
         .perform(get("/reservations/me").header("Authorization", bearer(CLIENT)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(ID.toString()))
-        .andExpect(jsonPath("$[0].userId").value(USER_ID.toString()));
+        .andExpect(jsonPath("$[0].user.id").value(USER_ID.toString()));
 
     verify(service).getByUserId(USER_ID.toString());
   }
@@ -100,20 +103,20 @@ class ReservationControllerTest {
 
   @Test
   void getById_returnsReservation() throws Exception {
-    when(service.getById(eq(ID), anyString(), anyString())).thenReturn(model());
+    when(service.getById(eq(ID), anyString(), anyString())).thenReturn(response());
 
     mockMvc
         .perform(get("/reservations/{id}", ID).header("Authorization", bearer(ADMIN)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(ID.toString()))
-        .andExpect(jsonPath("$.userId").value(USER_ID.toString()));
+        .andExpect(jsonPath("$.user.id").value(USER_ID.toString()));
 
     verify(service).getById(eq(ID), eq(USER_ID.toString()), eq(ADMIN.name()));
   }
 
   @Test
   void create_persistsAndReturnsCreatedReservation() throws Exception {
-    when(service.create(any(CreateReservationRequest.class))).thenReturn(model());
+    when(service.create(any(CreateReservationRequest.class))).thenReturn(response());
 
     mockMvc
         .perform(
@@ -123,7 +126,7 @@ class ReservationControllerTest {
                 .content(createRequestBody()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(ID.toString()))
-        .andExpect(jsonPath("$.projectionId").value(PROJECTION_ID.toString()));
+        .andExpect(jsonPath("$.projection.id").value(PROJECTION_ID.toString()));
 
     ArgumentCaptor<CreateReservationRequest> captor =
         ArgumentCaptor.forClass(CreateReservationRequest.class);
@@ -136,7 +139,7 @@ class ReservationControllerTest {
 
   @Test
   void update_savesAndReturnsReservation() throws Exception {
-    when(service.update(any(Reservation.class), eq(ID))).thenReturn(model());
+    when(service.update(any(Reservation.class), eq(ID))).thenReturn(response());
 
     mockMvc
         .perform(
@@ -240,7 +243,7 @@ class ReservationControllerTest {
 
   @Test
   void create_returnsCreated_forClientRole() throws Exception {
-    when(service.create(any(CreateReservationRequest.class))).thenReturn(model());
+    when(service.create(any(CreateReservationRequest.class))).thenReturn(response());
 
     mockMvc
         .perform(
@@ -265,7 +268,7 @@ class ReservationControllerTest {
 
   @Test
   void update_returnsOk_forEmployeeRole() throws Exception {
-    when(service.update(any(Reservation.class), eq(ID))).thenReturn(model());
+    when(service.update(any(Reservation.class), eq(ID))).thenReturn(response());
 
     mockMvc
         .perform(
@@ -293,7 +296,13 @@ class ReservationControllerTest {
   }
 
   private String reservationBody() throws Exception {
-    return objectMapper.writeValueAsString(model());
+    return objectMapper.writeValueAsString(
+        Map.of(
+            "id", ID.toString(),
+            "createdAt", CREATED_AT.toString(),
+            "userId", USER_ID.toString(),
+            "projectionId", PROJECTION_ID.toString(),
+            "seatIds", List.of(SEAT_ID.toString())));
   }
 
   private String bearer(UserRole role) {
@@ -305,13 +314,15 @@ class ReservationControllerTest {
     return tokenProvider.generateToken(user);
   }
 
-  private Reservation model() {
-    return Reservation.builder()
+  private ReservationResponse response() {
+    return ReservationResponse.builder()
         .id(ID)
         .createdAt(CREATED_AT)
-        .userId(USER_ID)
-        .projectionId(PROJECTION_ID)
-        .seatIds(List.of(SEAT_ID))
+        .user(UserSummary.builder().id(USER_ID).firstName("John").email("user@example.com").build())
+        .projection(ProjectionSummary.builder().id(PROJECTION_ID).build())
+        .seats(
+            List.of(
+                io.poja.cinebook.dto.response.SeatInfo.builder().id(SEAT_ID).number("A1").build()))
         .build();
   }
 }

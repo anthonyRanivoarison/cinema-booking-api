@@ -3,12 +3,13 @@ package io.poja.cinebook.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.poja.cinebook.dto.request.ProjectionRequest;
+import io.poja.cinebook.dto.response.ProjectionResponse;
 import io.poja.cinebook.dto.response.SeatAvailability;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.mapper.ProjectionMapper;
@@ -49,14 +50,31 @@ class ProjectionServiceTest {
   @Test
   void getAll_returnsMappedProjections() {
     var entity = entity();
-    when(repository.findAll()).thenReturn(List.of(entity));
-    when(mapper.toModel(anyList())).thenReturn(List.of(model()));
+    JProjection fullEntity =
+        JProjection.builder()
+            .id(ID)
+            .datetime(DATETIME)
+            .seatPrice(SEAT_PRICE)
+            .room(JRoom.builder().id(ROOM_ID).build())
+            .build();
+    ProjectionResponse projectionResponse =
+        ProjectionResponse.builder()
+            .id(ID)
+            .datetime(DATETIME)
+            .seatPrice(SEAT_PRICE)
+            .availableSeats(5)
+            .build();
 
-    List<Projection> result = service.getAll();
+    when(repository.findAll()).thenReturn(List.of(fullEntity));
+    when(seatRepository.findByRoom_Id(ROOM_ID))
+        .thenReturn(List.of(JSeat.builder().id(UUID.randomUUID()).build()));
+    when(reservationRepository.findTakenOrPendingSeatIdsByProjectionId(ID)).thenReturn(List.of());
+    when(mapper.toResponse(eq(fullEntity), eq(1))).thenReturn(projectionResponse);
 
-    assertThat(result).containsExactly(model());
+    List<ProjectionResponse> result = service.getAll();
+
+    assertThat(result).containsExactly(projectionResponse);
     verify(repository).findAll();
-    verify(mapper).toModel(List.of(entity));
   }
 
   @Test

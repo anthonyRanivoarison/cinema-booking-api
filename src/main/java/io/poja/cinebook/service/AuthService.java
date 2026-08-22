@@ -14,19 +14,34 @@ import io.poja.cinebook.repository.UserRepository;
 import io.poja.cinebook.repository.model.JUser;
 import java.util.List;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-@AllArgsConstructor
 public class AuthService {
   private final UserRepository repository;
   private final UserMapper mapper;
   private final JwtTokenProvider jwtProvider;
   private final PasswordEncoder passwordEncoder;
   private final EventProducer<SendEmailRequested> eventProducer;
+  private final long expirationMs;
+
+  public AuthService(
+      UserRepository repository,
+      UserMapper mapper,
+      JwtTokenProvider jwtProvider,
+      PasswordEncoder passwordEncoder,
+      EventProducer<SendEmailRequested> eventProducer,
+      @Value("${security.jwt.expiration-ms}") long expirationMs) {
+    this.repository = repository;
+    this.mapper = mapper;
+    this.jwtProvider = jwtProvider;
+    this.passwordEncoder = passwordEncoder;
+    this.eventProducer = eventProducer;
+    this.expirationMs = expirationMs;
+  }
 
   public AuthResponse signup(SignUpRequest request) {
     repository
@@ -54,7 +69,14 @@ public class AuthService {
                 .subject("Welcome to Cinema Booking!")
                 .htmlBody(welcomeHtml(user.firstName()))
                 .build()));
-    return new AuthResponse(jwtProvider.generateToken(user), user.id(), user.role());
+    return AuthResponse.builder()
+        .token(jwtProvider.generateToken(user))
+        .userId(user.id())
+        .role(user.role())
+        .email(user.email())
+        .firstName(user.firstName())
+        .expiresIn(expirationMs / 1000)
+        .build();
   }
 
   public AuthResponse login(LoginRequest request) {
@@ -66,7 +88,14 @@ public class AuthService {
       throw new ApiException("Invalid password. Please try again", HttpStatus.UNAUTHORIZED);
     }
     User user = mapper.toModel(entity);
-    return new AuthResponse(jwtProvider.generateToken(user), user.id(), user.role());
+    return AuthResponse.builder()
+        .token(jwtProvider.generateToken(user))
+        .userId(user.id())
+        .role(user.role())
+        .email(user.email())
+        .firstName(user.firstName())
+        .expiresIn(expirationMs / 1000)
+        .build();
   }
 
   private String welcomeHtml(String firstName) {

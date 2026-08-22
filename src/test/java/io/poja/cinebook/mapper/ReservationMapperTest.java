@@ -5,17 +5,24 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.poja.cinebook.dto.response.ReservationResponse;
 import io.poja.cinebook.entity.Projection;
 import io.poja.cinebook.entity.Reservation;
 import io.poja.cinebook.entity.Seat;
 import io.poja.cinebook.entity.User;
+import io.poja.cinebook.entity.enums.MovieGender;
+import io.poja.cinebook.entity.enums.ReservationStatus;
+import io.poja.cinebook.repository.model.JMovie;
 import io.poja.cinebook.repository.model.JProjection;
 import io.poja.cinebook.repository.model.JReservation;
+import io.poja.cinebook.repository.model.JRoom;
 import io.poja.cinebook.repository.model.JSeat;
 import io.poja.cinebook.repository.model.JUser;
 import io.poja.cinebook.service.ProjectionService;
 import io.poja.cinebook.service.SeatService;
 import io.poja.cinebook.service.UserService;
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -32,7 +39,10 @@ class ReservationMapperTest {
   private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
   private static final UUID PROJECTION_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
   private static final UUID SEAT_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
+  private static final UUID MOVIE_ID = UUID.fromString("55555555-5555-5555-5555-555555555555");
+  private static final UUID ROOM_ID = UUID.fromString("66666666-6666-6666-6666-666666666666");
   private static final Instant CREATED_AT = Instant.parse("2026-08-05T10:00:00Z");
+  private static final Instant DATETIME = Instant.parse("2026-08-10T19:30:00Z");
 
   @Mock private UserService userService;
   @Mock private ProjectionService projectionService;
@@ -126,6 +136,62 @@ class ReservationMapperTest {
     assertThat(mapper.toEntity(List.of())).isEmpty();
   }
 
+  @Test
+  void toResponse_mapsAllFields() {
+    JReservation entity = responseEntity();
+
+    ReservationResponse result = mapper.toResponse(entity);
+
+    assertThat(result.id()).isEqualTo(ID);
+    assertThat(result.createdAt()).isEqualTo(CREATED_AT);
+    assertThat(result.status()).isEqualTo(ReservationStatus.PENDING);
+    assertThat(result.ticketUrl()).isEqualTo("https://ticket.example.com/123");
+    assertThat(result.user().id()).isEqualTo(USER_ID);
+    assertThat(result.user().firstName()).isEqualTo("Alice");
+    assertThat(result.user().email()).isEqualTo("alice@example.com");
+    assertThat(result.projection().id()).isEqualTo(PROJECTION_ID);
+    assertThat(result.projection().datetime()).isEqualTo(DATETIME);
+    assertThat(result.projection().seatPrice()).isEqualByComparingTo(new BigDecimal("15.00"));
+    assertThat(result.projection().movie().id()).isEqualTo(MOVIE_ID);
+    assertThat(result.projection().movie().title()).isEqualTo("Inception");
+    assertThat(result.projection().movie().posterUrl())
+        .isEqualTo("https://img.example.com/poster.jpg");
+    assertThat(result.projection().movie().gender()).isEqualTo(MovieGender.ACTION);
+    assertThat(result.projection().movie().durationSeconds())
+        .isEqualTo(Duration.ofHours(2).getSeconds());
+    assertThat(result.projection().room().id()).isEqualTo(ROOM_ID);
+    assertThat(result.projection().room().number()).isEqualTo("A1");
+    assertThat(result.projection().room().capacity()).isEqualTo(100);
+    assertThat(result.seats()).hasSize(1);
+    assertThat(result.seats().get(0).id()).isEqualTo(SEAT_ID);
+    assertThat(result.seats().get(0).number()).isEqualTo("A1-S1");
+  }
+
+  @Test
+  void toResponse_mapsList() {
+    List<ReservationResponse> result =
+        mapper.toResponse(List.of(responseEntity(), responseEntity()));
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).user().id()).isEqualTo(USER_ID);
+    assertThat(result.get(0).projection().movie().id()).isEqualTo(MOVIE_ID);
+  }
+
+  @Test
+  void toResponse_mapsEmptyList() {
+    assertThat(mapper.toResponse(List.of())).isEmpty();
+  }
+
+  @Test
+  void toResponse_handlesNullDuration() {
+    JReservation entity = responseEntity();
+    entity.getProjection().getMovie().setDuration(null);
+
+    ReservationResponse result = mapper.toResponse(entity);
+
+    assertThat(result.projection().movie().durationSeconds()).isNull();
+  }
+
   private JReservation entity() {
     return JReservation.builder()
         .id(ID)
@@ -156,5 +222,36 @@ class ReservationMapperTest {
 
   private Seat seat() {
     return Seat.builder().id(SEAT_ID).build();
+  }
+
+  private JReservation responseEntity() {
+    var movie =
+        JMovie.builder()
+            .id(MOVIE_ID)
+            .title("Inception")
+            .posterUrl("https://img.example.com/poster.jpg")
+            .gender(MovieGender.ACTION)
+            .duration(Duration.ofHours(2))
+            .build();
+    var room = JRoom.builder().id(ROOM_ID).number("A1").capacity(100).build();
+    var projection =
+        JProjection.builder()
+            .id(PROJECTION_ID)
+            .datetime(DATETIME)
+            .seatPrice(new BigDecimal("15.00"))
+            .movie(movie)
+            .room(room)
+            .build();
+    var user = JUser.builder().id(USER_ID).firstName("Alice").email("alice@example.com").build();
+    var seat = JSeat.builder().id(SEAT_ID).number("A1-S1").build();
+    return JReservation.builder()
+        .id(ID)
+        .createdAt(CREATED_AT)
+        .status(ReservationStatus.PENDING)
+        .ticketUrl("https://ticket.example.com/123")
+        .user(user)
+        .projection(projection)
+        .seats(List.of(seat))
+        .build();
   }
 }

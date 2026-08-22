@@ -1,5 +1,11 @@
 package io.poja.cinebook.mapper;
 
+import io.poja.cinebook.dto.response.MovieSummary;
+import io.poja.cinebook.dto.response.ProjectionSummary;
+import io.poja.cinebook.dto.response.ReservationResponse;
+import io.poja.cinebook.dto.response.RoomSummary;
+import io.poja.cinebook.dto.response.SeatInfo;
+import io.poja.cinebook.dto.response.UserSummary;
 import io.poja.cinebook.entity.Reservation;
 import io.poja.cinebook.repository.model.JReservation;
 import io.poja.cinebook.repository.model.JSeat;
@@ -34,6 +40,62 @@ public class ReservationMapper {
 
   public List<Reservation> toModel(List<JReservation> entities) {
     return entities.stream().map(this::toModel).toList();
+  }
+
+  public ReservationResponse toResponse(JReservation entity) {
+    var movie =
+        MovieSummary.builder()
+            .id(entity.getProjection().getMovie().getId())
+            .title(entity.getProjection().getMovie().getTitle())
+            .posterUrl(entity.getProjection().getMovie().getPosterUrl())
+            .gender(entity.getProjection().getMovie().getGender())
+            .durationSeconds(
+                entity.getProjection().getMovie().getDuration() != null
+                    ? entity.getProjection().getMovie().getDuration().getSeconds()
+                    : null)
+            .build();
+
+    var room =
+        RoomSummary.builder()
+            .id(entity.getProjection().getRoom().getId())
+            .number(entity.getProjection().getRoom().getNumber())
+            .capacity(entity.getProjection().getRoom().getCapacity())
+            .build();
+
+    var projection =
+        ProjectionSummary.builder()
+            .id(entity.getProjection().getId())
+            .datetime(entity.getProjection().getDatetime())
+            .seatPrice(entity.getProjection().getSeatPrice())
+            .movie(movie)
+            .room(room)
+            .build();
+
+    var user =
+        UserSummary.builder()
+            .id(entity.getUser().getId())
+            .firstName(entity.getUser().getFirstName())
+            .email(entity.getUser().getEmail())
+            .build();
+
+    var seats =
+        entity.getSeats().stream()
+            .map(s -> SeatInfo.builder().id(s.getId()).number(s.getNumber()).build())
+            .toList();
+
+    return ReservationResponse.builder()
+        .id(entity.getId())
+        .createdAt(entity.getCreatedAt())
+        .status(entity.getStatus())
+        .ticketUrl(entity.getTicketUrl())
+        .user(user)
+        .projection(projection)
+        .seats(seats)
+        .build();
+  }
+
+  public List<ReservationResponse> toResponse(List<JReservation> entities) {
+    return entities.stream().map(this::toResponse).toList();
   }
 
   public JReservation toEntity(Reservation model) {

@@ -56,10 +56,25 @@ public class ReservationService {
     return mapper.toResponse(repository.findByUserId(UUID.fromString(userId)));
   }
 
-  public ReservationResponse create(CreateReservationRequest request) {
+  @Transactional
+  public ReservationResponse create(CreateReservationRequest request, String currentUserId) {
+    UUID userId = UUID.fromString(currentUserId);
+
+    // Idempotency: return existing reservation if already created with this key
+    repository
+        .findByUserIdAndIdempotencyKey(userId, request.idempotencyKey().toString())
+        .ifPresent(
+            existing -> {
+              throw new ApiException("Duplicate booking", HttpStatus.CONFLICT);
+            });
+
     projectionRepository
         .findById(request.projectionId())
         .orElseThrow(() -> new EntityNotFoundException("Projection not found"));
+
+    // Pessimistic lock on requested seats to prevent concurrent double-booking
+    repository.lockSeatsByIds(request.seatIds());
+
     List<UUID> takenSeatIds =
         repository.findTakenOrPendingSeatIdsByProjectionId(request.projectionId());
     List<UUID> conflicts = request.seatIds().stream().filter(takenSeatIds::contains).toList();
@@ -67,14 +82,16 @@ public class ReservationService {
       throw new ApiException(
           String.format("Seat(s) already reserved: %s", conflicts), HttpStatus.CONFLICT);
     }
+
     Reservation reservation =
         Reservation.builder()
             .id(UUID.randomUUID())
             .createdAt(Instant.now())
-            .userId(request.userId())
+            .userId(userId)
             .projectionId(request.projectionId())
             .seatIds(request.seatIds())
             .status(ReservationStatus.PENDING)
+            .idempotencyKey(request.idempotencyKey())
             .build();
     return mapper.toResponse(repository.save(mapper.toEntity(reservation)));
   }

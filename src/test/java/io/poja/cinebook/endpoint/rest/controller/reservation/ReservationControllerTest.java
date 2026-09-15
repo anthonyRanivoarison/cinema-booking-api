@@ -59,6 +59,7 @@ class ReservationControllerTest {
   private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
   private static final UUID PROJECTION_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
   private static final UUID SEAT_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
+  private static final UUID REQUEST_KEY = UUID.fromString("55555555-5555-5555-5555-555555555555");
   private static final Instant CREATED_AT = Instant.parse("2026-08-05T10:00:00Z");
 
   @Autowired private MockMvc mockMvc;
@@ -116,7 +117,8 @@ class ReservationControllerTest {
 
   @Test
   void create_persistsAndReturnsCreatedReservation() throws Exception {
-    when(service.create(any(CreateReservationRequest.class))).thenReturn(response());
+    when(service.create(any(CreateReservationRequest.class), eq(USER_ID.toString())))
+        .thenReturn(response());
 
     mockMvc
         .perform(
@@ -130,11 +132,11 @@ class ReservationControllerTest {
 
     ArgumentCaptor<CreateReservationRequest> captor =
         ArgumentCaptor.forClass(CreateReservationRequest.class);
-    verify(service).create(captor.capture());
+    verify(service).create(captor.capture(), eq(USER_ID.toString()));
     CreateReservationRequest request = captor.getValue();
-    org.assertj.core.api.Assertions.assertThat(request.userId()).isEqualTo(USER_ID);
     org.assertj.core.api.Assertions.assertThat(request.projectionId()).isEqualTo(PROJECTION_ID);
     org.assertj.core.api.Assertions.assertThat(request.seatIds()).containsExactly(SEAT_ID);
+    org.assertj.core.api.Assertions.assertThat(request.idempotencyKey()).isEqualTo(REQUEST_KEY);
   }
 
   @Test
@@ -208,7 +210,7 @@ class ReservationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"projectionId\":\"" + PROJECTION_ID + "\"}"))
         .andExpect(status().isBadRequest());
-    verify(service, never()).create(any());
+    verify(service, never()).create(any(), anyString());
   }
 
   @Test
@@ -243,7 +245,8 @@ class ReservationControllerTest {
 
   @Test
   void create_returnsCreated_forClientRole() throws Exception {
-    when(service.create(any(CreateReservationRequest.class))).thenReturn(response());
+    when(service.create(any(CreateReservationRequest.class), eq(USER_ID.toString())))
+        .thenReturn(response());
 
     mockMvc
         .perform(
@@ -290,9 +293,9 @@ class ReservationControllerTest {
   private String createRequestBody() throws Exception {
     return objectMapper.writeValueAsString(
         Map.of(
-            "userId", USER_ID.toString(),
             "projectionId", PROJECTION_ID.toString(),
-            "seatIds", List.of(SEAT_ID.toString())));
+            "seatIds", List.of(SEAT_ID.toString()),
+            "idempotencyKey", REQUEST_KEY.toString()));
   }
 
   private String reservationBody() throws Exception {

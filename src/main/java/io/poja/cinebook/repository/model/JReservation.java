@@ -54,4 +54,7 @@ public class JReservation {
   private ReservationStatus status;
 
   private String ticketUrl;
+
+  @Column(name = "idempotency_key", nullable = false, length = 64)
+  private String idempotencyKey;
 }

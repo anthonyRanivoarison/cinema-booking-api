@@ -171,10 +171,11 @@ class ProjectionServiceIT extends FacadeIT {
                 .build());
     reservationService.create(
         CreateReservationRequest.builder()
-            .userId(user.getId())
             .projectionId(projection.id())
             .seatIds(List.of(seatA.getId()))
-            .build());
+            .idempotencyKey(UUID.randomUUID())
+            .build(),
+        user.getId().toString());
 
     List<SeatAvailability> result = service.getSeats(projection.id());
 

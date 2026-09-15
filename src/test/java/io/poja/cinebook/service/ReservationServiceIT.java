@@ -61,7 +61,7 @@ class ReservationServiceIT extends FacadeIT {
     JSeat seatB = saveSeat("A2");
 
     ReservationResponse created =
-        service.create(request(user.getId(), projection.getId(), seatA, seatB));
+        service.create(request(projection.getId(), seatA, seatB), user.getId().toString());
 
     assertThat(created.id()).isNotNull();
     assertThat(created.createdAt()).isNotNull();
@@ -85,7 +85,8 @@ class ReservationServiceIT extends FacadeIT {
     JUser user = saveUser("jane@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("B1");
-    ReservationResponse created = service.create(request(user.getId(), projection.getId(), seat));
+    ReservationResponse created =
+        service.create(request(projection.getId(), seat), user.getId().toString());
 
     ReservationResponse result =
         service.getById(created.id(), user.getId().toString(), UserRole.CLIENT.name());
@@ -98,7 +99,8 @@ class ReservationServiceIT extends FacadeIT {
     JUser owner = saveUser("owner@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("C1");
-    ReservationResponse created = service.create(request(owner.getId(), projection.getId(), seat));
+    ReservationResponse created =
+        service.create(request(projection.getId(), seat), owner.getId().toString());
 
     assertThatThrownBy(
             () ->
@@ -124,7 +126,7 @@ class ReservationServiceIT extends FacadeIT {
     JSeat seatA = saveSeat("D1");
     JSeat seatB = saveSeat("D2");
     ReservationResponse created =
-        service.create(request(user.getId(), projection.getId(), seatA, seatB));
+        service.create(request(projection.getId(), seatA, seatB), user.getId().toString());
 
     Reservation updateRequest =
         Reservation.builder()
@@ -170,7 +172,8 @@ class ReservationServiceIT extends FacadeIT {
     JUser user = saveUser("delete@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("E1");
-    ReservationResponse created = service.create(request(user.getId(), projection.getId(), seat));
+    ReservationResponse created =
+        service.create(request(projection.getId(), seat), user.getId().toString());
 
     service.delete(created.id());
 
@@ -194,9 +197,10 @@ class ReservationServiceIT extends FacadeIT {
     JUser user = saveUser("conflict@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("F1");
-    service.create(request(user.getId(), projection.getId(), seat));
+    service.create(request(projection.getId(), seat), user.getId().toString());
 
-    assertThatThrownBy(() -> service.create(request(user.getId(), projection.getId(), seat)))
+    assertThatThrownBy(
+            () -> service.create(request(projection.getId(), seat), user.getId().toString()))
         .isInstanceOf(ApiException.class)
         .hasMessageContaining("already reserved");
     assertThat(reservationRepository.count()).isEqualTo(1);
@@ -207,16 +211,17 @@ class ReservationServiceIT extends FacadeIT {
     JUser user = saveUser("missing@example.com");
     JSeat seat = saveSeat("F2");
 
-    assertThatThrownBy(() -> service.create(request(user.getId(), UUID.randomUUID(), seat)))
+    assertThatThrownBy(
+            () -> service.create(request(UUID.randomUUID(), seat), user.getId().toString()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage("Projection not found");
   }
 
-  private CreateReservationRequest request(UUID userId, UUID projectionId, JSeat... seats) {
+  private CreateReservationRequest request(UUID projectionId, JSeat... seats) {
     return CreateReservationRequest.builder()
-        .userId(userId)
         .projectionId(projectionId)
         .seatIds(java.util.Arrays.stream(seats).map(JSeat::getId).toList())
+        .idempotencyKey(UUID.randomUUID())
         .build();
   }
 

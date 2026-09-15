@@ -70,8 +70,9 @@ public class ReservationController {
     @ApiResponse(responseCode = "404", description = "Projection not found"),
     @ApiResponse(responseCode = "409", description = "One or more seats already taken"),
   })
-  public ReservationResponse create(@RequestBody @Valid CreateReservationRequest request) {
-    return service.create(request);
+  public ReservationResponse create(
+      @RequestBody @Valid CreateReservationRequest request, @AuthenticationPrincipal Jwt jwt) {
+    return service.create(request, jwt.getSubject());
   }
 
   @PatchMapping("/{id}/approve")

@@ -46,6 +46,7 @@ class ReservationServiceTest {
   private static final UUID OTHER_USER_ID = UUID.fromString("99999999-9999-9999-9999-999999999999");
   private static final UUID PROJECTION_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
   private static final UUID SEAT_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
+  private static final UUID REQUEST_KEY = UUID.fromString("55555555-5555-5555-5555-555555555555");
   private static final Instant CREATED_AT = Instant.parse("2026-08-05T10:00:00Z");
 
   @Mock private ReservationRepository repository;
@@ -133,16 +134,17 @@ class ReservationServiceTest {
     when(repository.save(entity)).thenReturn(entity);
     when(mapper.toResponse(entity)).thenReturn(response());
 
-    ReservationResponse result = service.create(request);
+    ReservationResponse result = service.create(request, USER_ID.toString());
 
     ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
     verify(mapper).toEntity(captor.capture());
     Reservation captured = captor.getValue();
     assertThat(captured.id()).isNotNull();
     assertThat(captured.createdAt()).isNotNull();
-    assertThat(captured.userId()).isEqualTo(request.userId());
+    assertThat(captured.userId()).isEqualTo(USER_ID);
     assertThat(captured.projectionId()).isEqualTo(request.projectionId());
     assertThat(captured.seatIds()).isEqualTo(request.seatIds());
+    assertThat(captured.idempotencyKey()).isEqualTo(request.idempotencyKey());
     verify(repository).save(entity);
     verify(mapper).toResponse(entity);
     assertThat(result).isEqualTo(response());
@@ -154,7 +156,7 @@ class ReservationServiceTest {
   void create_throwsNotFound_whenProjectionMissing() {
     when(projectionRepository.findById(PROJECTION_ID)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.create(request()))
+    assertThatThrownBy(() -> service.create(request(), USER_ID.toString()))
         .isInstanceOf(EntityNotFoundException.class)
         .hasMessage("Projection not found");
     verify(repository, never()).save(any());
@@ -166,12 +168,28 @@ class ReservationServiceTest {
     when(repository.findTakenOrPendingSeatIdsByProjectionId(PROJECTION_ID))
         .thenReturn(List.of(SEAT_ID));
 
-    assertThatThrownBy(() -> service.create(request()))
+    assertThatThrownBy(() -> service.create(request(), USER_ID.toString()))
         .isInstanceOf(ApiException.class)
         .hasMessageContaining("Seat(s) already reserved")
         .extracting(ex -> ((ApiException) ex).getStatus())
         .isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
     verify(repository, never()).save(any());
+  }
+
+  @Test
+  void create_throwsConflict_whenIdempotencyKeyReused() {
+    JReservation existing =
+        JReservation.builder().id(ID).idempotencyKey(REQUEST_KEY.toString()).build();
+    when(repository.findByUserIdAndIdempotencyKey(USER_ID, REQUEST_KEY.toString()))
+        .thenReturn(Optional.of(existing));
+
+    assertThatThrownBy(() -> service.create(request(), USER_ID.toString()))
+        .isInstanceOf(ApiException.class)
+        .hasMessage("Duplicate booking")
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
+    verify(repository, never()).save(any());
+    verify(projectionRepository, never()).findById(any());
   }
 
   @Test
@@ -219,9 +237,9 @@ class ReservationServiceTest {
 
   private CreateReservationRequest request() {
     return CreateReservationRequest.builder()
-        .userId(USER_ID)
         .projectionId(PROJECTION_ID)
         .seatIds(List.of(SEAT_ID))
+        .idempotencyKey(REQUEST_KEY)
         .build();
   }
 

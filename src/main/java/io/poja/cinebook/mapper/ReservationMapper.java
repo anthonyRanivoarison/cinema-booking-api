@@ -13,6 +13,7 @@ import io.poja.cinebook.service.ProjectionService;
 import io.poja.cinebook.service.SeatService;
 import io.poja.cinebook.service.UserService;
 import java.util.List;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +36,8 @@ public class ReservationMapper {
         .seatIds(entity.getSeats().stream().map(JSeat::getId).toList())
         .status(entity.getStatus())
         .ticketUrl(entity.getTicketUrl())
+        .idempotencyKey(
+            entity.getIdempotencyKey() != null ? UUID.fromString(entity.getIdempotencyKey()) : null)
         .build();
   }
 
@@ -111,6 +114,7 @@ public class ReservationMapper {
         .seats(seats)
         .status(model.status())
         .ticketUrl(model.ticketUrl())
+        .idempotencyKey(model.idempotencyKey() != null ? model.idempotencyKey().toString() : null)
         .build();
   }
 

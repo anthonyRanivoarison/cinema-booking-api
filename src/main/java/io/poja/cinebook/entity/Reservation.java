@@ -14,4 +14,5 @@ public record Reservation(
     UUID projectionId,
     List<UUID> seatIds,
     ReservationStatus status,
-    String ticketUrl) {}
+    String ticketUrl,
+    UUID idempotencyKey) {}

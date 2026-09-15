@@ -134,7 +134,7 @@ class ReservationServiceTest {
     when(repository.save(entity)).thenReturn(entity);
     when(mapper.toResponse(entity)).thenReturn(response());
 
-    ReservationResponse result = service.create(request, USER_ID.toString());
+ReservationResponse result = service.create(request, USER_ID.toString());
 
     ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
     verify(mapper).toEntity(captor.capture());

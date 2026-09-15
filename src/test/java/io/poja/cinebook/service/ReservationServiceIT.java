@@ -85,7 +85,7 @@ class ReservationServiceIT extends FacadeIT {
     JUser user = saveUser("jane@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("B1");
-ReservationResponse created =
+    ReservationResponse created =
         service.create(request(projection.getId(), seat), user.getId().toString());
 
     ReservationResponse result =
@@ -99,7 +99,7 @@ ReservationResponse created =
     JUser owner = saveUser("owner@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("C1");
-ReservationResponse created =
+    ReservationResponse created =
         service.create(request(projection.getId(), seat), owner.getId().toString());
 
     assertThatThrownBy(
@@ -172,7 +172,7 @@ ReservationResponse created =
     JUser user = saveUser("delete@example.com");
     JProjection projection = saveProjection();
     JSeat seat = saveSeat("E1");
-ReservationResponse created =
+    ReservationResponse created =
         service.create(request(projection.getId(), seat), user.getId().toString());
 
     service.delete(created.id());

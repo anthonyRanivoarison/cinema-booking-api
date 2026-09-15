@@ -130,7 +130,7 @@ public class ReservationService {
                 .to(userEmail)
                 .subject("Your ticket is ready!")
                 .htmlBody(
-"""
+                    """
 <html>
   <body>
     <p>Dear %s,</p>
